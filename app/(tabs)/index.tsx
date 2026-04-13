@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Alert,
   FlatList,
@@ -52,10 +53,29 @@ type ProfileHighlight = {
   coverUrl: string;
 };
 
+type PersistedHomeState = {
+  version: 1;
+  usernameInput: string;
+  profileName: string;
+  displayName: string;
+  bio: string;
+  avatarUrl: string;
+  postsCount: string;
+  followers: string;
+  following: string;
+  profileLoaded: boolean;
+  profileSource: string;
+  highlights: ProfileHighlight[];
+  photos: GalleryPhoto[];
+};
+
 const GRID_COLUMNS = 3;
 const GRID_GAP = 2;
 const DEFAULT_USERNAME = '';
 const DEFAULT_PROXY_BASE_URL = 'http://localhost:8787';
+const HOME_SCREEN_STATE_STORAGE_KEY = 'gallery.home-screen-state.v1';
+const HOME_SCREEN_DB_NAME = 'gallery-home-screen-db';
+const HOME_SCREEN_DB_STORE = 'keyval';
 
 function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
   if (
@@ -96,6 +116,140 @@ function splitPhotosByLock(photos: GalleryPhoto[]) {
 
 function mergePhotos(unlocked: GalleryPhoto[], locked: GalleryPhoto[]) {
   return [...unlocked, ...locked];
+}
+
+function getPersistentPhotoUri(asset: ImagePicker.ImagePickerAsset) {
+  if (asset.base64) {
+    return `data:${asset.mimeType ?? 'image/jpeg'};base64,${asset.base64}`;
+  }
+
+  return asset.uri;
+}
+
+function openHomeStateDatabase(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(HOME_SCREEN_DB_NAME, 1);
+
+    request.onupgradeneeded = () => {
+      const database = request.result;
+
+      if (!database.objectStoreNames.contains(HOME_SCREEN_DB_STORE)) {
+        database.createObjectStore(HOME_SCREEN_DB_STORE);
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error('Failed to open IndexedDB.'));
+  });
+}
+
+async function readPersistedHomeStateValue() {
+  if (Platform.OS !== 'web' || typeof indexedDB === 'undefined') {
+    return AsyncStorage.getItem(HOME_SCREEN_STATE_STORAGE_KEY);
+  }
+
+  const database = await openHomeStateDatabase();
+
+  return new Promise<string | null>((resolve, reject) => {
+    const transaction = database.transaction(HOME_SCREEN_DB_STORE, 'readonly');
+    const store = transaction.objectStore(HOME_SCREEN_DB_STORE);
+    const request = store.get(HOME_SCREEN_STATE_STORAGE_KEY);
+
+    request.onsuccess = () => {
+      resolve(typeof request.result === 'string' ? request.result : null);
+      database.close();
+    };
+    request.onerror = () => {
+      reject(request.error ?? new Error('Failed to read persisted home state.'));
+      database.close();
+    };
+  });
+}
+
+async function writePersistedHomeStateValue(value: string) {
+  if (Platform.OS !== 'web' || typeof indexedDB === 'undefined') {
+    await AsyncStorage.setItem(HOME_SCREEN_STATE_STORAGE_KEY, value);
+    return;
+  }
+
+  const database = await openHomeStateDatabase();
+
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(HOME_SCREEN_DB_STORE, 'readwrite');
+    const store = transaction.objectStore(HOME_SCREEN_DB_STORE);
+
+    transaction.oncomplete = () => {
+      resolve();
+      database.close();
+    };
+    transaction.onerror = () => {
+      reject(transaction.error ?? new Error('Failed to write persisted home state.'));
+      database.close();
+    };
+
+    store.put(value, HOME_SCREEN_STATE_STORAGE_KEY);
+  });
+}
+
+function parsePersistedHomeState(value: string | null): PersistedHomeState | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as Partial<PersistedHomeState> | null;
+
+    if (!parsed || parsed.version !== 1) {
+      return null;
+    }
+
+    return {
+      version: 1,
+      usernameInput: typeof parsed.usernameInput === 'string' ? parsed.usernameInput : '',
+      profileName: typeof parsed.profileName === 'string' ? parsed.profileName : '',
+      displayName: typeof parsed.displayName === 'string' ? parsed.displayName : 'Duck Gallery',
+      bio:
+        typeof parsed.bio === 'string'
+          ? parsed.bio
+          : 'Curate your photos in profile order. Add images from your library, then long-press any tile to move it around the grid.',
+      avatarUrl: typeof parsed.avatarUrl === 'string' ? parsed.avatarUrl : '',
+      postsCount: typeof parsed.postsCount === 'string' ? parsed.postsCount : '0',
+      followers: typeof parsed.followers === 'string' ? parsed.followers : '0',
+      following: typeof parsed.following === 'string' ? parsed.following : '0',
+      profileLoaded: Boolean(parsed.profileLoaded),
+      profileSource: typeof parsed.profileSource === 'string' ? parsed.profileSource : '',
+      highlights: Array.isArray(parsed.highlights)
+        ? parsed.highlights
+            .filter(
+              (highlight): highlight is ProfileHighlight =>
+                typeof highlight?.id === 'string' &&
+                typeof highlight?.title === 'string' &&
+                typeof highlight?.coverUrl === 'string'
+            )
+            .map((highlight) => ({
+              id: highlight.id,
+              title: highlight.title,
+              coverUrl: highlight.coverUrl,
+            }))
+        : [],
+      photos: Array.isArray(parsed.photos)
+        ? parsed.photos
+            .filter(
+              (photo): photo is GalleryPhoto =>
+                typeof photo?.id === 'string' &&
+                typeof photo?.uri === 'string'
+            )
+            .map((photo) => ({
+              id: photo.id,
+              uri: photo.uri,
+              locked: Boolean(photo.locked),
+              source: photo.source === 'instagram' ? 'instagram' : 'local',
+            }))
+        : [],
+    };
+  } catch {
+    return null;
+  }
 }
 
 function normalizeUsername(username: string) {
@@ -208,6 +362,22 @@ export default function HomeScreen() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [profileSource, setProfileSource] = useState('');
+  const [hasHydratedState, setHasHydratedState] = useState(false);
+
+  const applyPersistedState = useCallback((snapshot: PersistedHomeState) => {
+    setUsernameInput(snapshot.usernameInput);
+    setProfileName(snapshot.profileName);
+    setDisplayName(snapshot.displayName);
+    setBio(snapshot.bio);
+    setAvatarUrl(snapshot.avatarUrl);
+    setPostsCount(snapshot.postsCount);
+    setFollowers(snapshot.followers);
+    setFollowing(snapshot.following);
+    setProfileLoaded(snapshot.profileLoaded);
+    setProfileSource(snapshot.profileSource);
+    setHighlights(snapshot.highlights);
+    setPhotos(snapshot.photos);
+  }, []);
 
   const gridSize = useMemo(() => {
     const horizontalPadding = 0;
@@ -336,8 +506,87 @@ export default function HomeScreen() {
   );
 
   useEffect(() => {
-    void loadProfile(DEFAULT_USERNAME);
-  }, [loadProfile]);
+    let isCancelled = false;
+
+    async function restoreHomeState() {
+      try {
+        const storedState = await readPersistedHomeStateValue();
+        const parsedState = parsePersistedHomeState(storedState);
+
+        if (parsedState) {
+          if (!isCancelled) {
+            applyPersistedState(parsedState);
+          }
+
+          return;
+        }
+
+        if (DEFAULT_USERNAME) {
+          await loadProfile(DEFAULT_USERNAME);
+        }
+      } catch {
+        if (DEFAULT_USERNAME) {
+          await loadProfile(DEFAULT_USERNAME);
+        }
+      } finally {
+        if (!isCancelled) {
+          setHasHydratedState(true);
+        }
+      }
+    }
+
+    void restoreHomeState();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [applyPersistedState, loadProfile]);
+
+  useEffect(() => {
+    if (!hasHydratedState) {
+      return;
+    }
+
+    async function persistHomeState() {
+      try {
+        const snapshot: PersistedHomeState = {
+          version: 1,
+          usernameInput,
+          profileName,
+          displayName,
+          bio,
+          avatarUrl,
+          postsCount,
+          followers,
+          following,
+          profileLoaded,
+          profileSource,
+          highlights,
+          photos,
+        };
+
+        await writePersistedHomeStateValue(JSON.stringify(snapshot));
+      } catch (error) {
+        console.warn('Failed to persist home screen state.', error);
+      }
+    }
+
+    void persistHomeState();
+  }, [
+    avatarUrl,
+    bio,
+    displayName,
+    followers,
+    following,
+    hasHydratedState,
+    highlights,
+    photos,
+    postsCount,
+    profileLoaded,
+    profileName,
+    profileSource,
+    usernameInput,
+  ]);
 
   const pickPhotos = async () => {
     if (isPicking) {
@@ -363,6 +612,7 @@ export default function HomeScreen() {
         mediaTypes: ['images'],
         allowsMultipleSelection: true,
         orderedSelection: true,
+        base64: true,
         quality: 1,
         selectionLimit: 0,
       });
@@ -375,7 +625,7 @@ export default function HomeScreen() {
           .filter((asset) => asset.uri)
           .map((asset, index) => ({
             id: `${asset.assetId ?? asset.fileName ?? 'photo'}-${Date.now()}-${index}`,
-            uri: asset.uri,
+            uri: getPersistentPhotoUri(asset),
             locked: false,
             source: 'local' as const,
           }));
