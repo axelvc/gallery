@@ -41,8 +41,85 @@ function buildProxyMediaUrl(baseUrl, targetUrl) {
   return `${baseUrl}/instagram/media?url=${encodeURIComponent(targetUrl)}`;
 }
 
-function formatProfilePayload(user, baseUrl) {
+function formatHighlightPayload(user, baseUrl) {
+  const highlightEdges = user.edge_highlight_reels?.edges ?? [];
+
+  return highlightEdges
+    .map((edge, index) => {
+      const node = edge?.node;
+      const coverUrl =
+        node?.cover_media_cropped_thumbnail?.url ?? node?.cover_media?.thumbnail_src ?? '';
+
+      return {
+        id: node?.id ?? `highlight-${index}`,
+        title: node?.title?.trim() || 'Highlight',
+        coverUrl: buildProxyMediaUrl(baseUrl, coverUrl),
+      };
+    })
+    .filter((highlight) => highlight.coverUrl);
+}
+
+function extractProfileExtrasQueryId(html) {
+  return html.match(/"profile_extras":\{.*?"query_id":"(\d+)"/s)?.[1] ?? '';
+}
+
+async function fetchProfileExtrasUser(username, userId) {
+  const profileResponse = await fetch(`https://www.instagram.com/${encodeURIComponent(username)}/`, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0',
+      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    },
+  });
+
+  if (!profileResponse.ok) {
+    throw new Error('PROFILE_EXTRAS_UNAVAILABLE');
+  }
+
+  const profileHtml = await profileResponse.text();
+  const queryId = extractProfileExtrasQueryId(profileHtml);
+
+  if (!queryId) {
+    throw new Error('PROFILE_EXTRAS_UNAVAILABLE');
+  }
+
+  const query = new URLSearchParams({
+    query_id: queryId,
+    user_id: String(userId),
+    include_chaining: 'false',
+    include_reel: 'true',
+    include_suggested_users: 'false',
+    include_logged_out_extras: 'true',
+    include_live_status: 'false',
+    include_highlight_reels: 'true',
+  });
+
+  const response = await fetch(`https://www.instagram.com/graphql/query/?${query.toString()}`, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0',
+      Accept: 'application/json',
+      Referer: `https://www.instagram.com/${username}/`,
+      'X-IG-App-ID': INSTAGRAM_APP_ID,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('PROFILE_EXTRAS_UNAVAILABLE');
+  }
+
+  const payload = await response.json();
+  const user = payload?.data?.user;
+
+  if (!user) {
+    throw new Error('PROFILE_EXTRAS_UNAVAILABLE');
+  }
+
+  return user;
+}
+
+function formatProfilePayload(user, baseUrl, profileExtrasUser = null) {
   const edges = user.edge_owner_to_timeline_media?.edges ?? [];
+  const highlightUser = profileExtrasUser ?? user;
+  const highlights = formatHighlightPayload(highlightUser, baseUrl);
 
   return {
     source: 'web_profile_info',
@@ -54,6 +131,11 @@ function formatProfilePayload(user, baseUrl) {
     followersCount: user.edge_followed_by?.count ?? 0,
     followingCount: user.edge_follow?.count ?? 0,
     isPrivate: Boolean(user.is_private),
+    highlightCount:
+      highlights.length > 0
+        ? highlights.length
+        : (highlightUser.highlight_reel_count ?? user.highlight_reel_count ?? 0),
+    highlights,
     photos: edges
       .map((edge, index) => ({
         id: edge?.node?.id ?? `instagram-${index}`,
@@ -99,7 +181,17 @@ async function fetchPublicProfileInfo(username, baseUrl) {
     throw new Error('PROFILE_PRIVATE');
   }
 
-  return formatProfilePayload(user, baseUrl);
+  let profileExtrasUser = null;
+
+  if (user.id) {
+    try {
+      profileExtrasUser = await fetchProfileExtrasUser(username, user.id);
+    } catch {
+      profileExtrasUser = null;
+    }
+  }
+
+  return formatProfilePayload(user, baseUrl, profileExtrasUser);
 }
 
 function decodeHtml(value) {
@@ -194,6 +286,8 @@ async function fetchProfileHtml(username, baseUrl) {
     followersCount: counts.followersCount,
     followingCount: counts.followingCount,
     isPrivate: false,
+    highlightCount: 0,
+    highlights: [],
     photos: [],
   };
 }

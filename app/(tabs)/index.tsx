@@ -4,6 +4,7 @@ import {
   FlatList,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   TextInput,
   useWindowDimensions,
@@ -40,7 +41,15 @@ type InstagramProfileLoadResult = {
   postsCount: number;
   followers: string;
   following: string;
+  highlightCount: number;
+  highlights: ProfileHighlight[];
   photos: GalleryPhoto[];
+};
+
+type ProfileHighlight = {
+  id: string;
+  title: string;
+  coverUrl: string;
 };
 
 const GRID_COLUMNS = 3;
@@ -149,6 +158,8 @@ async function fetchInstagramProfile(username: string): Promise<InstagramProfile
         postsCount?: number;
         followersCount?: number;
         followingCount?: number;
+        highlightCount?: number;
+        highlights?: ProfileHighlight[];
         photos?: GalleryPhoto[];
       }
     | { error?: string };
@@ -170,6 +181,8 @@ async function fetchInstagramProfile(username: string): Promise<InstagramProfile
     postsCount: typeof data.postsCount === 'number' ? data.postsCount : data.photos?.length ?? 0,
     followers: formatCount(data.followersCount),
     following: formatCount(data.followingCount),
+    highlightCount: typeof data.highlightCount === 'number' ? data.highlightCount : data.highlights?.length ?? 0,
+    highlights: (data.highlights ?? []).filter((highlight) => highlight.coverUrl),
     photos: (data.photos ?? []).slice(0, 18),
   };
 }
@@ -191,6 +204,7 @@ export default function HomeScreen() {
   const [postsCount, setPostsCount] = useState('0');
   const [followers, setFollowers] = useState('0');
   const [following, setFollowing] = useState('0');
+  const [highlights, setHighlights] = useState<ProfileHighlight[]>([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [profileSource, setProfileSource] = useState('');
@@ -249,6 +263,7 @@ export default function HomeScreen() {
     setPostsCount('0');
     setFollowers('0');
     setFollowing('0');
+    setHighlights([]);
     setPhotos([]);
     setProfileLoaded(false);
     setProfileSource('');
@@ -280,6 +295,7 @@ export default function HomeScreen() {
         setPostsCount(formatCount(profile.postsCount));
         setFollowers(profile.followers);
         setFollowing(profile.following);
+        setHighlights(profile.highlights);
         setPhotos(profile.photos.map((photo) => ({ ...photo, locked: true, source: 'instagram' })));
         setProfileLoaded(true);
         setProfileSource(profile.source ?? '');
@@ -494,14 +510,39 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          <View style={styles.highlightRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.highlightRow}
+          >
+            {highlights.map((highlight) => (
+              <View key={highlight.id} style={styles.highlightItem}>
+                <View
+                  style={[
+                    styles.highlightCircle,
+                    { borderColor: tileBorder, backgroundColor: isDark ? '#1A1A1A' : '#F1F1F1' },
+                  ]}
+                >
+                  <Image source={{ uri: highlight.coverUrl }} style={styles.highlightImage} contentFit="cover" />
+                </View>
+                <ThemedText numberOfLines={1} style={[styles.highlightLabel, { color: actionText }]}>
+                  {highlight.title}
+                </ThemedText>
+              </View>
+            ))}
+
             <View style={styles.highlightItem}>
-              <View style={[styles.highlightCircle, { borderColor: '#3A3A3A', backgroundColor: '#1A1A1A' }]}>
+              <View
+                style={[
+                  styles.highlightCircle,
+                  { borderColor: tileBorder, backgroundColor: isDark ? '#1A1A1A' : '#F1F1F1' },
+                ]}
+              >
                 <Ionicons name="add" size={32} color={mutedText} />
               </View>
               <ThemedText style={[styles.highlightLabel, { color: actionText }]}>New</ThemedText>
             </View>
-          </View>
+          </ScrollView>
         </View>
 
         <View style={[styles.tabBar, { borderTopColor: tileBorder }]}>
@@ -790,10 +831,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  highlightImage: {
+    width: '100%',
+    height: '100%',
   },
   highlightLabel: {
     fontSize: 12,
     lineHeight: 16,
+    maxWidth: 72,
+    textAlign: 'center',
   },
   tabBar: {
     flexDirection: 'row',
