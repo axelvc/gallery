@@ -27,6 +27,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 type GalleryPhoto = {
   id: string;
   uri: string;
+  locked?: boolean;
+  source?: 'instagram' | 'local';
 };
 
 type InstagramProfileLoadResult = {
@@ -42,7 +44,7 @@ type InstagramProfileLoadResult = {
 };
 
 const GRID_COLUMNS = 3;
-const GRID_GAP = 6;
+const GRID_GAP = 2;
 const DEFAULT_USERNAME = 'duck.1110358';
 const DEFAULT_PROXY_BASE_URL = 'http://localhost:8787';
 
@@ -66,6 +68,25 @@ function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
 
   nextItems.splice(toIndex, 0, movedItem);
   return nextItems;
+}
+
+function splitPhotosByLock(photos: GalleryPhoto[]) {
+  return photos.reduce(
+    (groups, photo) => {
+      if (photo.locked) {
+        groups.locked.push(photo);
+      } else {
+        groups.unlocked.push(photo);
+      }
+
+      return groups;
+    },
+    { unlocked: [] as GalleryPhoto[], locked: [] as GalleryPhoto[] }
+  );
+}
+
+function mergePhotos(unlocked: GalleryPhoto[], locked: GalleryPhoto[]) {
+  return [...unlocked, ...locked];
 }
 
 function normalizeUsername(username: string) {
@@ -184,13 +205,35 @@ export default function HomeScreen() {
     data: photos,
     numColumns: GRID_COLUMNS,
     keyExtractor: (item) => item.id,
-    onReorder: ({ data }) => setPhotos([...data]),
+    onReorder: ({ data }) => {
+      setPhotos((current) => {
+        const { locked } = splitPhotosByLock(current);
+        const { unlocked } = splitPhotosByLock(data);
+
+        return mergePhotos(unlocked, locked);
+      });
+    },
     onDragEnd: ({ index, toIndex, cancelled }) => {
       if (cancelled || typeof toIndex !== 'number' || toIndex === index) {
         return;
       }
 
-      setPhotos((current) => moveItem(current, index, toIndex));
+      setPhotos((current) => {
+        const { unlocked, locked } = splitPhotosByLock(current);
+        const lastUnlockedIndex = unlocked.length - 1;
+
+        if (index < 0 || index > lastUnlockedIndex || lastUnlockedIndex < 0) {
+          return current;
+        }
+
+        const nextUnlockedIndex = Math.max(0, Math.min(toIndex, lastUnlockedIndex));
+
+        if (nextUnlockedIndex === index) {
+          return current;
+        }
+
+        return mergePhotos(moveItem(unlocked, index, nextUnlockedIndex), locked);
+      });
     },
   });
 
@@ -237,7 +280,7 @@ export default function HomeScreen() {
         setPostsCount(formatCount(profile.postsCount));
         setFollowers(profile.followers);
         setFollowing(profile.following);
-        setPhotos(profile.photos);
+        setPhotos(profile.photos.map((photo) => ({ ...photo, locked: true, source: 'instagram' })));
         setProfileLoaded(true);
         setProfileSource(profile.source ?? '');
       } catch (error) {
@@ -312,14 +355,20 @@ export default function HomeScreen() {
         return;
       }
 
-      const nextPhotos = result.assets
-        .filter((asset) => asset.uri)
-        .map((asset, index) => ({
-          id: `${asset.assetId ?? asset.fileName ?? 'photo'}-${Date.now()}-${index}`,
-          uri: asset.uri,
-        }));
+        const nextPhotos = result.assets
+          .filter((asset) => asset.uri)
+          .map((asset, index) => ({
+            id: `${asset.assetId ?? asset.fileName ?? 'photo'}-${Date.now()}-${index}`,
+            uri: asset.uri,
+            locked: false,
+            source: 'local' as const,
+          }));
 
-      setPhotos((current) => [...current, ...nextPhotos]);
+      setPhotos((current) => {
+        const { unlocked, locked } = splitPhotosByLock(current);
+
+        return mergePhotos([...unlocked, ...nextPhotos], locked);
+      });
     } catch {
       Alert.alert('Unable to open gallery', 'Please try picking your photos again.');
     } finally {
@@ -328,7 +377,7 @@ export default function HomeScreen() {
   };
 
   const removePhoto = (photoId: string) => {
-    setPhotos((current) => current.filter((photo) => photo.id !== photoId));
+    setPhotos((current) => current.filter((photo) => photo.id !== photoId || photo.locked));
   };
 
   const stats = [
@@ -547,41 +596,49 @@ export default function HomeScreen() {
                   <SortableItem
                     sortable={sortable}
                     index={index}
+                    fixed={item.locked}
                     style={[
                       styles.sortableItem,
                       {
                         width: gridSize,
-                        height: gridSize,
+                        height: gridSize * 1.33,
                         margin: GRID_GAP / 2,
                       },
                     ]}
                     dragReleasedStyle={styles.dragRelease}
                     draggingStyle={styles.dragging}
                     hoverStyle={styles.hover}
-                  >
-                    <ThemedView
-                      style={[
-                        styles.tile,
-                        {
-                          borderColor: tileBorder,
-                          backgroundColor: tileBackground,
-                        },
-                      ]}
                     >
-                      <Image source={{ uri: item.uri }} style={styles.tileImage} contentFit="cover" />
+                      <ThemedView
+                        style={[
+                          styles.tile,
+                          {
+                            borderColor: tileBorder,
+                            backgroundColor: tileBackground,
+                          },
+                          item.locked ? styles.lockedTile : null,
+                        ]}
+                      >
+                        <Image source={{ uri: item.uri }} style={styles.tileImage} contentFit="cover" />
 
-                      <View style={styles.tileOverlay}>
-                        <Pressable
-                          accessibilityLabel="Remove photo"
-                          accessibilityRole="button"
-                          onPress={() => removePhoto(item.id)}
-                          style={styles.removeButton}
-                        >
-                          <Ionicons name="close" size={16} color="#FFFFFF" />
-                        </Pressable>
-                      </View>
-                    </ThemedView>
-                  </SortableItem>
+                        <View style={styles.tileOverlay}>
+                          {item.locked ? (
+                            <View style={styles.lockedBadge}>
+                              <Ionicons name="lock-closed" size={12} color="#FFFFFF" />
+                            </View>
+                          ) : (
+                            <Pressable
+                              accessibilityLabel="Remove photo"
+                              accessibilityRole="button"
+                              onPress={() => removePhoto(item.id)}
+                              style={styles.removeButton}
+                            >
+                              <Ionicons name="close" size={16} color="#FFFFFF" />
+                            </Pressable>
+                          )}
+                        </View>
+                      </ThemedView>
+                    </SortableItem>
                 )}
               />
             </SortableContainer>
@@ -864,6 +921,9 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     overflow: 'hidden',
   },
+  lockedTile: {
+    opacity: 0.94,
+  },
   tileImage: {
     width: '100%',
     height: '100%',
@@ -871,6 +931,14 @@ const styles = StyleSheet.create({
   tileOverlay: {
     ...StyleSheet.absoluteFillObject,
     padding: 8,
+  },
+  lockedBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(17, 20, 24, 0.30)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   removeButton: {
     width: 30,
