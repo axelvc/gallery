@@ -77,28 +77,6 @@ const HOME_SCREEN_STATE_STORAGE_KEY = 'gallery.home-screen-state.v1';
 const HOME_SCREEN_DB_NAME = 'gallery-home-screen-db';
 const HOME_SCREEN_DB_STORE = 'keyval';
 
-function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
-  if (
-    fromIndex < 0 ||
-    toIndex < 0 ||
-    fromIndex >= items.length ||
-    toIndex >= items.length ||
-    fromIndex === toIndex
-  ) {
-    return items;
-  }
-
-  const nextItems = [...items];
-  const [movedItem] = nextItems.splice(fromIndex, 1);
-
-  if (movedItem === undefined) {
-    return items;
-  }
-
-  nextItems.splice(toIndex, 0, movedItem);
-  return nextItems;
-}
-
 function splitPhotosByLock(photos: GalleryPhoto[]) {
   return photos.reduce(
     (groups, photo) => {
@@ -395,28 +373,6 @@ export default function HomeScreen() {
         const { unlocked } = splitPhotosByLock(data);
 
         return mergePhotos(unlocked, locked);
-      });
-    },
-    onDragEnd: ({ index, toIndex, cancelled }) => {
-      if (cancelled || typeof toIndex !== 'number' || toIndex === index) {
-        return;
-      }
-
-      setPhotos((current) => {
-        const { unlocked, locked } = splitPhotosByLock(current);
-        const lastUnlockedIndex = unlocked.length - 1;
-
-        if (index < 0 || index > lastUnlockedIndex || lastUnlockedIndex < 0) {
-          return current;
-        }
-
-        const nextUnlockedIndex = Math.max(0, Math.min(toIndex, lastUnlockedIndex));
-
-        if (nextUnlockedIndex === index) {
-          return current;
-        }
-
-        return mergePhotos(moveItem(unlocked, index, nextUnlockedIndex), locked);
       });
     },
   });
