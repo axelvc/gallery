@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   FlatList,
   Platform,
   Pressable,
   StyleSheet,
+  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -28,8 +29,22 @@ type GalleryPhoto = {
   uri: string;
 };
 
+type InstagramProfileLoadResult = {
+  source?: string;
+  username: string;
+  displayName: string;
+  biography: string;
+  profilePictureUrl: string;
+  postsCount: number;
+  followers: string;
+  following: string;
+  photos: GalleryPhoto[];
+};
+
 const GRID_COLUMNS = 3;
 const GRID_GAP = 6;
+const DEFAULT_USERNAME = 'duck.1110358';
+const DEFAULT_PROXY_BASE_URL = 'http://localhost:8787';
 
 function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
   if (
@@ -53,12 +68,111 @@ function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
   return nextItems;
 }
 
+function normalizeUsername(username: string) {
+  return username.trim().replace(/^@+/, '').replace(/\/$/, '');
+}
+
+function formatCount(value?: number) {
+  return typeof value === 'number' ? value.toLocaleString('en-US') : '0';
+}
+
+function getInstagramProxyBaseUrl() {
+  const configuredUrl = process.env.EXPO_PUBLIC_INSTAGRAM_PROXY_URL?.trim();
+
+  if (configuredUrl) {
+    return configuredUrl.replace(/\/$/, '');
+  }
+
+  return Platform.OS === 'web' ? DEFAULT_PROXY_BASE_URL : '';
+}
+
+async function fetchInstagramProfile(username: string): Promise<InstagramProfileLoadResult> {
+  const normalizedUsername = normalizeUsername(username);
+  const proxyBaseUrl = getInstagramProxyBaseUrl();
+
+  if (!normalizedUsername) {
+    throw new Error('EMPTY_USERNAME');
+  }
+
+  if (!proxyBaseUrl) {
+    throw new Error('PROXY_NOT_CONFIGURED');
+  }
+
+  const response = await fetch(
+    `${proxyBaseUrl}/instagram/profile?username=${encodeURIComponent(normalizedUsername)}`
+  );
+
+  if (response.status === 404) {
+    throw new Error('PROFILE_NOT_FOUND');
+  }
+
+  if (response.status === 403) {
+    throw new Error('PROFILE_PRIVATE');
+  }
+
+  if (response.status === 429) {
+    throw new Error('PROFILE_UNAVAILABLE');
+  }
+
+  if (!response.ok) {
+    throw new Error('PROFILE_UNAVAILABLE');
+  }
+
+  const data = (await response.json()) as
+    | {
+        source?: string;
+        username?: string;
+        fullName?: string;
+        biography?: string;
+        profilePictureUrl?: string;
+        postsCount?: number;
+        followersCount?: number;
+        followingCount?: number;
+        photos?: GalleryPhoto[];
+      }
+    | { error?: string };
+
+  if ('error' in data && data.error) {
+    throw new Error(data.error);
+  }
+
+  if (!('username' in data) || !data.username) {
+    throw new Error('PROFILE_NOT_FOUND');
+  }
+
+  return {
+    source: data.source,
+    username: data.username || normalizedUsername,
+    displayName: data.fullName?.trim() || data.username || normalizedUsername,
+    biography: data.biography?.trim() || 'Public Instagram profile imported into your grid.',
+    profilePictureUrl: data.profilePictureUrl ?? '',
+    postsCount: typeof data.postsCount === 'number' ? data.postsCount : data.photos?.length ?? 0,
+    followers: formatCount(data.followersCount),
+    following: formatCount(data.followingCount),
+    photos: (data.photos ?? []).slice(0, 18),
+  };
+}
+
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const { width } = useWindowDimensions();
   const listRef = useRef<FlatList<GalleryPhoto>>(null);
+  const profileLoadLockRef = useRef(false);
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [isPicking, setIsPicking] = useState(false);
+  const [usernameInput, setUsernameInput] = useState(DEFAULT_USERNAME);
+  const [profileName, setProfileName] = useState(DEFAULT_USERNAME);
+  const [displayName, setDisplayName] = useState('Duck Gallery');
+  const [bio, setBio] = useState(
+    'Curate your photos in profile order. Add images from your library, then long-press any tile to move it around the grid.'
+  );
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [postsCount, setPostsCount] = useState('0');
+  const [followers, setFollowers] = useState('0');
+  const [following, setFollowing] = useState('0');
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [profileSource, setProfileSource] = useState('');
 
   const gridSize = useMemo(() => {
     const horizontalPadding = 32;
@@ -79,6 +193,92 @@ export default function HomeScreen() {
       setPhotos((current) => moveItem(current, index, toIndex));
     },
   });
+
+  const resetProfileToBlank = useCallback((nextUsername: string) => {
+    const normalizedUsername = normalizeUsername(nextUsername);
+
+    setProfileName(normalizedUsername || 'username');
+    setDisplayName(normalizedUsername || 'Instagram profile');
+    setBio(
+      'This profile could not be loaded. Try another public Instagram username or add your own photos below.'
+    );
+    setAvatarUrl('');
+    setPostsCount('0');
+    setFollowers('0');
+    setFollowing('0');
+    setPhotos([]);
+    setProfileLoaded(false);
+    setProfileSource('');
+  }, []);
+
+  const loadProfile = useCallback(
+    async (requestedUsername: string) => {
+      const normalizedUsername = normalizeUsername(requestedUsername);
+
+      if (!normalizedUsername || profileLoadLockRef.current) {
+        if (!normalizedUsername) {
+          Alert.alert('Username needed', 'Enter an Instagram username to load a public profile grid.');
+        }
+
+        return;
+      }
+
+      profileLoadLockRef.current = true;
+      setIsLoadingProfile(true);
+
+      try {
+        const profile = await fetchInstagramProfile(normalizedUsername);
+
+        setProfileName(profile.username);
+        setUsernameInput(profile.username);
+        setDisplayName(profile.displayName);
+        setBio(profile.biography);
+        setAvatarUrl(profile.profilePictureUrl);
+        setPostsCount(formatCount(profile.postsCount));
+        setFollowers(profile.followers);
+        setFollowing(profile.following);
+        setPhotos(profile.photos);
+        setProfileLoaded(true);
+        setProfileSource(profile.source ?? '');
+      } catch (error) {
+        resetProfileToBlank(normalizedUsername);
+
+        if (error instanceof Error) {
+          if (error.message === 'PROFILE_PRIVATE') {
+            Alert.alert(
+              'Private profile',
+              'That Instagram account is private, so its posts cannot be used for the grid.'
+            );
+          } else if (error.message === 'PROFILE_NOT_FOUND') {
+            Alert.alert(
+              'Profile not found',
+              'That Instagram username does not exist. Try another public account.'
+            );
+          } else if (error.message === 'EMPTY_USERNAME') {
+            Alert.alert('Username needed', 'Enter an Instagram username to load a public profile grid.');
+          } else if (error.message === 'PROXY_NOT_CONFIGURED') {
+            Alert.alert(
+              'Proxy not configured',
+              'Set EXPO_PUBLIC_INSTAGRAM_PROXY_URL or run npm run instagram-proxy before loading a profile.'
+            );
+          } else {
+            Alert.alert(
+              'Profile unavailable',
+              'Instagram did not return a usable public profile. The grid has been cleared.'
+            );
+          }
+        }
+      } finally {
+        profileLoadLockRef.current = false;
+        setIsLoadingProfile(false);
+      }
+    },
+    [resetProfileToBlank]
+  );
+
+  useEffect(() => {
+    void loadProfile(DEFAULT_USERNAME);
+  }, [loadProfile]);
 
   const pickPhotos = async () => {
     if (isPicking) {
@@ -132,9 +332,9 @@ export default function HomeScreen() {
   };
 
   const stats = [
-    { label: 'Posts', value: photos.length.toString() },
-    { label: 'Followers', value: '0' },
-    { label: 'Following', value: '0' },
+    { label: 'Posts', value: postsCount },
+    { label: 'Followers', value: followers },
+    { label: 'Following', value: following },
   ];
 
   const isDark = colorScheme === 'dark';
@@ -146,8 +346,6 @@ export default function HomeScreen() {
   const actionBackground = isDark ? '#262626' : '#EFEFEF';
   const actionText = isDark ? '#F5F5F5' : '#111111';
   const accentBlue = '#0095F6';
-  const profileName = 'duck.1110358';
-  const displayName = 'Duck Gallery';
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: screenBackground }]}>
@@ -178,10 +376,14 @@ export default function HomeScreen() {
                 { backgroundColor: isDark ? '#1F1F1F' : '#E8EDF2', borderColor: tileBorder },
               ]}
             >
-              <View style={[styles.avatarInner, { backgroundColor: isDark ? '#8E8E8E' : '#C7C7C7' }]}>
-                <Ionicons name="person" size={42} color={isDark ? '#F5F5F5' : '#FFFFFF'} />
-              </View>
-              <View style={[styles.avatarBadge, { backgroundColor: cardBackground, borderColor: tileBorder }]}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} contentFit="cover" />
+              ) : (
+                <View style={[styles.avatarInner, { backgroundColor: isDark ? '#8E8E8E' : '#C7C7C7' }]}>
+                  <Ionicons name="person" size={42} color={isDark ? '#F5F5F5' : '#FFFFFF'} />
+                </View>
+              )}
+              <View style={[styles.avatarBadge, { backgroundColor: cardBackground, borderColor: tileBorder }]}> 
                 <Ionicons name="camera-outline" size={18} color={actionText} />
               </View>
             </View>
@@ -204,22 +406,63 @@ export default function HomeScreen() {
             <ThemedText type="defaultSemiBold" style={styles.displayName}>
               {displayName}
             </ThemedText>
-            <ThemedText style={[styles.subtitle, { color: mutedText }]}>
-              Curate your photos in profile order. Add images from your library, then long-press
-              any tile to move it around the grid.
+            <ThemedText style={[styles.subtitle, { color: mutedText }]}> 
+              {bio}
             </ThemedText>
-            <ThemedText style={[styles.linkText, { color: accentBlue }]}>gallery.dev/profile</ThemedText>
+            <ThemedText style={[styles.linkText, { color: accentBlue }]}>instagram.com/{profileName}</ThemedText>
+            {profileSource === 'profile_html' ? (
+              <ThemedText style={[styles.sourceNote, { color: mutedText }]}> 
+                Loaded from public profile HTML. Stats and avatar are available, but recent images may be limited.
+              </ThemedText>
+            ) : null}
+          </View>
+
+          <View style={styles.usernameRow}>
+            <View
+              style={[
+                styles.usernameInputWrap,
+                { backgroundColor: actionBackground, borderColor: tileBorder },
+              ]}
+            >
+              <ThemedText style={[styles.usernamePrefix, { color: mutedText }]}>@</ThemedText>
+              <TextInput
+                value={usernameInput}
+                onChangeText={setUsernameInput}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="instagram username"
+                placeholderTextColor={mutedText}
+                selectionColor={accentBlue}
+                style={[styles.usernameInput, { color: actionText }]}
+              />
+            </View>
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void loadProfile(usernameInput)}
+              style={({ pressed }) => [
+                styles.loadButton,
+                { backgroundColor: accentBlue, opacity: pressed || isLoadingProfile ? 0.8 : 1 },
+              ]}
+            >
+              <ThemedText style={styles.loadButtonText}>
+                {isLoadingProfile ? 'Loading' : 'Load'}
+              </ThemedText>
+            </Pressable>
           </View>
 
           <View style={styles.actionsRow}>
             <Pressable
               accessibilityRole="button"
+              onPress={() => void loadProfile(usernameInput)}
               style={({ pressed }) => [
                 styles.secondaryButton,
                 { backgroundColor: actionBackground, opacity: pressed ? 0.78 : 1 },
               ]}
             >
-              <ThemedText style={[styles.secondaryButtonText, { color: actionText }]}>Edit profile</ThemedText>
+              <ThemedText style={[styles.secondaryButtonText, { color: actionText }]}> 
+                {profileLoaded ? 'Refresh profile' : 'Try profile'}
+              </ThemedText>
             </Pressable>
 
             <Pressable
@@ -245,7 +488,7 @@ export default function HomeScreen() {
               <View style={[styles.highlightCircle, { borderColor: '#3A3A3A', backgroundColor: '#1A1A1A' }]}>
                 <Ionicons name="add" size={32} color={mutedText} />
               </View>
-              <ThemedText style={styles.highlightLabel}>New</ThemedText>
+              <ThemedText style={[styles.highlightLabel, { color: actionText }]}>New</ThemedText>
             </View>
           </View>
         </View>
@@ -273,8 +516,8 @@ export default function HomeScreen() {
               Share your first photo
             </ThemedText>
             <ThemedText style={[styles.emptyCopy, { color: mutedText }]}> 
-              Add photos to fill the profile grid, then drag them into the order you want.
-            </ThemedText>
+              Load a public Instagram username to seed the first 18 posts, or add your own photos to start with a blank grid.
+              </ThemedText>
             <Pressable
               accessibilityRole="button"
               onPress={pickPhotos}
@@ -410,6 +653,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarImage: {
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+  },
   avatarBadge: {
     position: 'absolute',
     right: -2,
@@ -457,10 +705,54 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '500',
   },
+  sourceNote: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 4,
+  },
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  usernameInputWrap: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  usernamePrefix: {
+    fontSize: 15,
+    lineHeight: 18,
+  },
+  usernameInput: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 18,
+    paddingVertical: 0,
+  },
+  loadButton: {
+    minWidth: 76,
+    minHeight: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  loadButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '700',
   },
   secondaryButton: {
     flex: 1,
