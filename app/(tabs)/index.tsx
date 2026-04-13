@@ -45,7 +45,7 @@ type InstagramProfileLoadResult = {
 
 const GRID_COLUMNS = 3;
 const GRID_GAP = 2;
-const DEFAULT_USERNAME = 'duck.1110358';
+const DEFAULT_USERNAME = '';
 const DEFAULT_PROXY_BASE_URL = 'http://localhost:8787';
 
 function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
@@ -196,7 +196,7 @@ export default function HomeScreen() {
   const [profileSource, setProfileSource] = useState('');
 
   const gridSize = useMemo(() => {
-    const horizontalPadding = 32;
+    const horizontalPadding = 0;
 
     return Math.floor((width - horizontalPadding) / GRID_COLUMNS - GRID_GAP);
   }, [width]);
@@ -388,7 +388,6 @@ export default function HomeScreen() {
 
   const isDark = colorScheme === 'dark';
   const screenBackground = isDark ? '#000000' : '#FAFAFA';
-  const cardBackground = isDark ? '#121212' : '#FFFFFF';
   const tileBackground = isDark ? '#101214' : '#F3F5F7';
   const tileBorder = isDark ? '#262626' : '#DBDBDB';
   const mutedText = isDark ? '#A8A8A8' : '#737373';
@@ -399,24 +398,6 @@ export default function HomeScreen() {
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: screenBackground }]}>
       <ThemedView style={[styles.screen, { backgroundColor: screenBackground }]}>
-        <View style={styles.topBar}>
-          <View style={styles.topBarTitleRow}>
-            <ThemedText type="defaultSemiBold" style={styles.topBarTitle}>
-              {profileName}
-            </ThemedText>
-            <Ionicons name="chevron-down" size={16} color={actionText} />
-          </View>
-
-          <View style={styles.topBarActions}>
-            <Pressable accessibilityRole="button" onPress={pickPhotos} style={styles.iconButton}>
-              <Ionicons name="add-circle-outline" size={24} color={actionText} />
-            </Pressable>
-            <View style={styles.iconButton}>
-              <Ionicons name="menu-outline" size={24} color={actionText} />
-            </View>
-          </View>
-        </View>
-
         <View style={styles.header}>
           <View style={styles.identityRow}>
             <View
@@ -432,9 +413,6 @@ export default function HomeScreen() {
                   <Ionicons name="person" size={42} color={isDark ? '#F5F5F5' : '#FFFFFF'} />
                 </View>
               )}
-              <View style={[styles.avatarBadge, { backgroundColor: cardBackground, borderColor: tileBorder }]}> 
-                <Ionicons name="camera-outline" size={18} color={actionText} />
-              </View>
             </View>
 
             <View style={styles.statsRow}>
@@ -455,12 +433,12 @@ export default function HomeScreen() {
             <ThemedText type="defaultSemiBold" style={styles.displayName}>
               {displayName}
             </ThemedText>
-            <ThemedText style={[styles.subtitle, { color: mutedText }]}> 
+            <ThemedText style={[styles.subtitle, { color: mutedText }]}>
               {bio}
             </ThemedText>
             <ThemedText style={[styles.linkText, { color: accentBlue }]}>instagram.com/{profileName}</ThemedText>
             {profileSource === 'profile_html' ? (
-              <ThemedText style={[styles.sourceNote, { color: mutedText }]}> 
+              <ThemedText style={[styles.sourceNote, { color: mutedText }]}>
                 Loaded from public profile HTML. Stats and avatar are available, but recent images may be limited.
               </ThemedText>
             ) : null}
@@ -485,51 +463,35 @@ export default function HomeScreen() {
                 style={[styles.usernameInput, { color: actionText }]}
               />
             </View>
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => void loadProfile(usernameInput)}
-              style={({ pressed }) => [
-                styles.loadButton,
-                { backgroundColor: accentBlue, opacity: pressed || isLoadingProfile ? 0.8 : 1 },
-              ]}
-            >
-              <ThemedText style={styles.loadButtonText}>
-                {isLoadingProfile ? 'Loading' : 'Load'}
-              </ThemedText>
-            </Pressable>
           </View>
 
           <View style={styles.actionsRow}>
             <Pressable
               accessibilityRole="button"
+              onPress={pickPhotos}
+              style={({ pressed }) => [
+                styles.secondaryButton,
+                { backgroundColor: accentBlue, opacity: pressed || isLoadingProfile ? 0.8 : 1 },
+                // { backgroundColor: actionBackground, opacity: pressed ? 0.78 : 1 },
+              ]}
+            >
+              <ThemedText style={[styles.secondaryButtonText, { color: actionText }]}>
+                {isPicking ? 'Opening...' : 'Add photos'}
+              </ThemedText>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
               onPress={() => void loadProfile(usernameInput)}
               style={({ pressed }) => [
                 styles.secondaryButton,
                 { backgroundColor: actionBackground, opacity: pressed ? 0.78 : 1 },
               ]}
             >
-              <ThemedText style={[styles.secondaryButtonText, { color: actionText }]}> 
-                {profileLoaded ? 'Refresh profile' : 'Try profile'}
+              <ThemedText style={[styles.secondaryButtonText, { color: actionText }]}>
+                {isLoadingProfile ? 'Loading' : profileLoaded ? 'Refresh profile' : 'Try profile'}
               </ThemedText>
             </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={pickPhotos}
-              style={({ pressed }) => [
-                styles.secondaryButton,
-                { backgroundColor: actionBackground, opacity: pressed ? 0.78 : 1 },
-              ]}
-            >
-              <ThemedText style={[styles.secondaryButtonText, { color: actionText }]}> 
-                {isPicking ? 'Opening...' : 'Add photos'}
-              </ThemedText>
-            </Pressable>
-
-            <View style={[styles.smallActionButton, { backgroundColor: actionBackground }]}>
-              <Ionicons name="archive-outline" size={18} color={actionText} />
-            </View>
           </View>
 
           <View style={styles.highlightRow}>
@@ -542,7 +504,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={[styles.tabBar, { borderTopColor: tileBorder }]}> 
+        <View style={[styles.tabBar, { borderTopColor: tileBorder }]}>
           <View style={styles.tabItemActive}>
             <Ionicons name="grid-outline" size={22} color={actionText} />
           </View>
@@ -561,10 +523,10 @@ export default function HomeScreen() {
             <View style={[styles.emptyIconCircle, { borderColor: tileBorder }]}>
               <Ionicons name="images-outline" size={30} color={actionText} />
             </View>
-            <ThemedText type="subtitle" style={[styles.emptyTitle, { color: actionText }]}> 
+            <ThemedText type="subtitle" style={[styles.emptyTitle, { color: actionText }]}>
               Share your first photo
             </ThemedText>
-            <ThemedText style={[styles.emptyCopy, { color: mutedText }]}> 
+            <ThemedText style={[styles.emptyCopy, { color: mutedText }]}>
               Load a public Instagram username to seed the first 18 posts, or add your own photos to start with a blank grid.
               </ThemedText>
             <Pressable
@@ -652,32 +614,11 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+    marginTop: Platform.OS === 'web' ? 16 : 0,
   },
   screen: {
     flex: 1,
     paddingBottom: 16,
-  },
-  topBar: {
-    paddingHorizontal: 16,
-    paddingBottom: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  topBarTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  topBarTitle: {
-    fontSize: 20,
-    lineHeight: 24,
-    fontWeight: '700',
-  },
-  topBarActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
   },
   iconButton: {
     width: 26,
@@ -734,6 +675,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   statsRow: {
+    alignSelf: 'center',
     flexDirection: 'row',
     flex: 1,
     justifyContent: 'space-evenly',
@@ -904,6 +846,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   listContent: {
+    margin: 'auto',
     paddingBottom: 32,
     paddingHorizontal: 1.5,
   },
@@ -936,6 +879,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
+    marginLeft: 'auto',
     backgroundColor: 'rgba(17, 20, 24, 0.30)',
     alignItems: 'center',
     justifyContent: 'center',
