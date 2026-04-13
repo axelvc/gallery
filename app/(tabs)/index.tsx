@@ -133,104 +133,158 @@ export default function HomeScreen() {
 
   const stats = [
     { label: 'Posts', value: photos.length.toString() },
-    { label: 'Layout', value: `${GRID_COLUMNS}x grid` },
-    { label: 'Mode', value: 'Drag sort' },
+    { label: 'Followers', value: '0' },
+    { label: 'Following', value: '0' },
   ];
 
   const isDark = colorScheme === 'dark';
-  const tileBackground = isDark ? '#16181D' : '#F3F5F7';
-  const tileBorder = isDark ? '#2A2F3A' : '#E3E8EE';
-  const accentBackground = isDark ? '#F2F5F8' : '#111418';
-  const accentText = isDark ? '#111418' : '#FFFFFF';
+  const screenBackground = isDark ? '#000000' : '#FAFAFA';
+  const cardBackground = isDark ? '#121212' : '#FFFFFF';
+  const tileBackground = isDark ? '#101214' : '#F3F5F7';
+  const tileBorder = isDark ? '#262626' : '#DBDBDB';
+  const mutedText = isDark ? '#A8A8A8' : '#737373';
+  const actionBackground = isDark ? '#262626' : '#EFEFEF';
+  const actionText = isDark ? '#F5F5F5' : '#111111';
+  const accentBlue = '#0095F6';
+  const profileName = 'duck.1110358';
+  const displayName = 'Duck Gallery';
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <ThemedView style={styles.screen}>
+    <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: screenBackground }]}>
+      <ThemedView style={[styles.screen, { backgroundColor: screenBackground }]}>
+        <View style={styles.topBar}>
+          <View style={styles.topBarTitleRow}>
+            <ThemedText type="defaultSemiBold" style={styles.topBarTitle}>
+              {profileName}
+            </ThemedText>
+            <Ionicons name="chevron-down" size={16} color={actionText} />
+          </View>
+
+          <View style={styles.topBarActions}>
+            <Pressable accessibilityRole="button" onPress={pickPhotos} style={styles.iconButton}>
+              <Ionicons name="add-circle-outline" size={24} color={actionText} />
+            </Pressable>
+            <View style={styles.iconButton}>
+              <Ionicons name="menu-outline" size={24} color={actionText} />
+            </View>
+          </View>
+        </View>
+
         <View style={styles.header}>
           <View style={styles.identityRow}>
             <View
               style={[
                 styles.avatar,
-                { backgroundColor: isDark ? '#20242C' : '#E8EDF2', borderColor: tileBorder },
+                { backgroundColor: isDark ? '#1F1F1F' : '#E8EDF2', borderColor: tileBorder },
               ]}
             >
-              <Ionicons
-                name="images-outline"
-                size={28}
-                color={isDark ? '#F7F8FA' : '#111418'}
-              />
+              <View style={[styles.avatarInner, { backgroundColor: isDark ? '#8E8E8E' : '#C7C7C7' }]}>
+                <Ionicons name="person" size={42} color={isDark ? '#F5F5F5' : '#FFFFFF'} />
+              </View>
+              <View style={[styles.avatarBadge, { backgroundColor: cardBackground, borderColor: tileBorder }]}>
+                <Ionicons name="camera-outline" size={18} color={actionText} />
+              </View>
             </View>
 
-            <View style={styles.identityCopy}>
-              <ThemedText type="title" style={styles.title}>
-                Gallery Grid
-              </ThemedText>
-              <ThemedText style={styles.subtitle}>
-                Pick photos from your library, then long-press and drag to reorder them like a
-                profile gallery.
-              </ThemedText>
+            <View style={styles.statsRow}>
+              {stats.map((stat) => (
+                <View key={stat.label} style={styles.statBlock}>
+                  <ThemedText type="defaultSemiBold" style={styles.statValue}>
+                    {stat.value}
+                  </ThemedText>
+                  <ThemedText style={[styles.statLabel, { color: actionText }]}>
+                    {stat.label.toLowerCase()}
+                  </ThemedText>
+                </View>
+              ))}
             </View>
           </View>
 
-          <View style={styles.statsRow}>
-            {stats.map((stat) => (
-              <ThemedView
-                key={stat.label}
-                style={[styles.statCard, { borderColor: tileBorder, backgroundColor: tileBackground }]}
-              >
-                <ThemedText type="defaultSemiBold" style={styles.statValue}>
-                  {stat.value}
-                </ThemedText>
-                <ThemedText style={styles.statLabel}>{stat.label}</ThemedText>
-              </ThemedView>
-            ))}
+          <View style={styles.identityCopy}>
+            <ThemedText type="defaultSemiBold" style={styles.displayName}>
+              {displayName}
+            </ThemedText>
+            <ThemedText style={[styles.subtitle, { color: mutedText }]}>
+              Curate your photos in profile order. Add images from your library, then long-press
+              any tile to move it around the grid.
+            </ThemedText>
+            <ThemedText style={[styles.linkText, { color: accentBlue }]}>gallery.dev/profile</ThemedText>
           </View>
 
           <View style={styles.actionsRow}>
             <Pressable
               accessibilityRole="button"
-              onPress={pickPhotos}
               style={({ pressed }) => [
-                styles.primaryButton,
-                { backgroundColor: accentBackground, opacity: pressed ? 0.86 : 1 },
+                styles.secondaryButton,
+                { backgroundColor: actionBackground, opacity: pressed ? 0.78 : 1 },
               ]}
             >
-              <Ionicons name="add" size={18} color={accentText} />
-              <ThemedText style={[styles.primaryButtonText, { color: accentText }]}>
-                {isPicking ? 'Opening library...' : 'Add photos'}
+              <ThemedText style={[styles.secondaryButtonText, { color: actionText }]}>Edit profile</ThemedText>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={pickPhotos}
+              style={({ pressed }) => [
+                styles.secondaryButton,
+                { backgroundColor: actionBackground, opacity: pressed ? 0.78 : 1 },
+              ]}
+            >
+              <ThemedText style={[styles.secondaryButtonText, { color: actionText }]}> 
+                {isPicking ? 'Opening...' : 'Add photos'}
               </ThemedText>
             </Pressable>
 
-            <ThemedView
-              style={[styles.helperPill, { borderColor: tileBorder, backgroundColor: tileBackground }]}
-            >
-              <Ionicons
-                name="hand-left-outline"
-                size={16}
-                color={isDark ? '#F7F8FA' : '#111418'}
-              />
-              <ThemedText style={styles.helperText}>
-                Long-press a tile to move it
-              </ThemedText>
-            </ThemedView>
+            <View style={[styles.smallActionButton, { backgroundColor: actionBackground }]}>
+              <Ionicons name="archive-outline" size={18} color={actionText} />
+            </View>
+          </View>
+
+          <View style={styles.highlightRow}>
+            <View style={styles.highlightItem}>
+              <View style={[styles.highlightCircle, { borderColor: '#3A3A3A', backgroundColor: '#1A1A1A' }]}>
+                <Ionicons name="add" size={32} color={mutedText} />
+              </View>
+              <ThemedText style={styles.highlightLabel}>New</ThemedText>
+            </View>
+          </View>
+        </View>
+
+        <View style={[styles.tabBar, { borderTopColor: tileBorder }]}> 
+          <View style={styles.tabItemActive}>
+            <Ionicons name="grid-outline" size={22} color={actionText} />
+          </View>
+          <View style={styles.tabItem}>
+            <Ionicons name="bookmark-outline" size={22} color={mutedText} />
+          </View>
+          <View style={styles.tabItem}>
+            <Ionicons name="person-circle-outline" size={24} color={mutedText} />
           </View>
         </View>
 
         {photos.length === 0 ? (
           <ThemedView
-            style={[styles.emptyState, { borderColor: tileBorder, backgroundColor: tileBackground }]}
+            style={[styles.emptyState, { borderColor: tileBorder, backgroundColor: screenBackground }]}
           >
-            <Ionicons name="image-outline" size={40} color={isDark ? '#F7F8FA' : '#111418'} />
-            <ThemedText type="subtitle" style={styles.emptyTitle}>
-              Your profile grid starts here
+            <View style={[styles.emptyIconCircle, { borderColor: tileBorder }]}>
+              <Ionicons name="images-outline" size={30} color={actionText} />
+            </View>
+            <ThemedText type="subtitle" style={[styles.emptyTitle, { color: actionText }]}> 
+              Share your first photo
             </ThemedText>
-            <ThemedText style={styles.emptyCopy}>
-              Add a few photos from your gallery to build the feed, then drag them into the order
-              you want.
+            <ThemedText style={[styles.emptyCopy, { color: mutedText }]}> 
+              Add photos to fill the profile grid, then drag them into the order you want.
             </ThemedText>
+            <Pressable
+              accessibilityRole="button"
+              onPress={pickPhotos}
+              style={({ pressed }) => [styles.emptyAction, { opacity: pressed ? 0.8 : 1 }]}
+            >
+              <ThemedText style={[styles.emptyActionText, { color: accentBlue }]}>Add photos</ThemedText>
+            </Pressable>
           </ThemedView>
         ) : (
-          <DraxProvider>
+          <DraxProvider style={styles.listProvider}>
             <SortableContainer sortable={sortable} scrollRef={listRef} style={styles.listContainer}>
               <FlatList
                 ref={listRef}
@@ -274,10 +328,6 @@ export default function HomeScreen() {
                       <Image source={{ uri: item.uri }} style={styles.tileImage} contentFit="cover" />
 
                       <View style={styles.tileOverlay}>
-                        <View style={[styles.dragBadge, { backgroundColor: 'rgba(17, 20, 24, 0.62)' }]}>
-                          <Ionicons name="reorder-three-outline" size={16} color="#FFFFFF" />
-                        </View>
-
                         <Pressable
                           accessibilityLabel="Remove photo"
                           accessibilityRole="button"
@@ -305,117 +355,221 @@ const styles = StyleSheet.create({
   },
   screen: {
     flex: 1,
-    paddingHorizontal: 16,
     paddingBottom: 16,
   },
+  topBar: {
+    paddingHorizontal: 16,
+    paddingBottom: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  topBarTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  topBarTitle: {
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '700',
+  },
+  topBarActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  iconButton: {
+    width: 26,
+    height: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   header: {
-    gap: 18,
+    gap: 14,
+    paddingHorizontal: 16,
     paddingBottom: 18,
   },
   identityRow: {
     flexDirection: 'row',
-    gap: 16,
-    alignItems: 'center',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 86,
+    height: 86,
+    borderRadius: 43,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
   },
-  identityCopy: {
-    flex: 1,
-    gap: 6,
+  avatarInner: {
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  title: {
-    fontSize: 28,
-    lineHeight: 32,
+  avatarBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  identityCopy: {
+    gap: 2,
   },
   subtitle: {
-    opacity: 0.72,
+    fontSize: 13,
+    lineHeight: 18,
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 10,
-  },
-  statCard: {
     flex: 1,
-    borderRadius: 18,
-    borderWidth: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    gap: 4,
+    justifyContent: 'space-evenly',
+    paddingTop: 12,
+    marginLeft: 16,
+  },
+  statBlock: {
+    alignItems: 'center',
+    minWidth: 74,
   },
   statValue: {
     fontSize: 18,
     lineHeight: 22,
+    fontWeight: '700',
   },
   statLabel: {
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  displayName: {
     fontSize: 13,
-    opacity: 0.65,
+    lineHeight: 18,
+  },
+  linkText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
   },
   actionsRow: {
-    gap: 12,
-  },
-  primaryButton: {
-    minHeight: 50,
-    borderRadius: 999,
-    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 8,
   },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    lineHeight: 20,
-  },
-  helperPill: {
-    minHeight: 42,
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
+  secondaryButton: {
+    flex: 1,
+    minHeight: 32,
+    borderRadius: 8,
+    paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
   },
-  helperText: {
+  secondaryButtonText: {
     fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  smallActionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  highlightRow: {
+    paddingTop: 2,
+    paddingBottom: 4,
+    flexDirection: 'row',
+  },
+  highlightItem: {
+    alignItems: 'center',
+    width: 72,
+    gap: 6,
+  },
+  highlightCircle: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  highlightLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    marginBottom: 2,
+  },
+  tabItem: {
+    flex: 1,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabItemActive: {
+    flex: 1,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderTopWidth: 1,
   },
   emptyState: {
     flex: 1,
-    borderRadius: 28,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    paddingHorizontal: 28,
+    paddingHorizontal: 36,
     paddingVertical: 24,
+  },
+  emptyIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyTitle: {
     textAlign: 'center',
   },
   emptyCopy: {
     textAlign: 'center',
-    opacity: 0.7,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  emptyAction: {
+    paddingVertical: 6,
+  },
+  emptyActionText: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '600',
   },
   listContent: {
-    paddingBottom: 24,
+    paddingBottom: 32,
+    paddingHorizontal: 1.5,
+  },
+  listProvider: {
+    flex: 1,
   },
   listContainer: {
     flex: 1,
   },
   sortableItem: {
-    borderRadius: 22,
+    borderRadius: 0,
   },
   tile: {
     flex: 1,
-    borderRadius: 22,
-    borderWidth: 1,
+    borderRadius: 0,
     overflow: 'hidden',
   },
   tileImage: {
@@ -425,21 +579,12 @@ const styles = StyleSheet.create({
   tileOverlay: {
     ...StyleSheet.absoluteFillObject,
     padding: 8,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  dragBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   removeButton: {
     width: 30,
     height: 30,
     borderRadius: 15,
+    marginLeft: 'auto',
     backgroundColor: 'rgba(17, 20, 24, 0.72)',
     alignItems: 'center',
     justifyContent: 'center',
