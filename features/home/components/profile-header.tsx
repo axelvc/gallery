@@ -1,6 +1,7 @@
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 
 import type { AppThemeColors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
@@ -22,10 +23,8 @@ type ProfileHeaderProps = {
   profileLoaded: boolean;
   profileName: string;
   profileSource: string;
-  setUsernameInput: (value: string) => void;
   styles: HomeScreenStyles;
   theme: AppThemeColors;
-  usernameInput: string;
 };
 
 export function ProfileHeader({
@@ -43,19 +42,25 @@ export function ProfileHeader({
   profileLoaded,
   profileName,
   profileSource,
-  setUsernameInput,
   styles,
   theme,
-  usernameInput,
 }: ProfileHeaderProps) {
+  const { t } = useTranslation();
+
   const stats = [
-    { label: 'Posts', value: postsCount },
-    { label: 'Followers', value: followers },
-    { label: 'Following', value: following },
+    { label: t('home.stats.posts'), value: postsCount },
+    { label: t('home.stats.followers'), value: followers },
+    { label: t('home.stats.following'), value: following },
   ];
 
   return (
     <View style={styles.header}>
+      <View style={styles.topBar}>
+        <ThemedText type="defaultSemiBold" style={styles.topBarTitle}>
+          @{profileName}
+        </ThemedText>
+      </View>
+
       <View style={styles.identityRow}>
         <View style={styles.avatar}>
           {avatarUrl ? (
@@ -86,26 +91,8 @@ export function ProfileHeader({
         <ThemedText style={styles.subtitle}>{bio}</ThemedText>
         <ThemedText style={styles.linkText}>instagram.com/{profileName}</ThemedText>
         {profileSource === 'profile_html' ? (
-          <ThemedText style={styles.sourceNote}>
-            Loaded from public profile HTML. Stats and avatar are available, but recent images may be limited.
-          </ThemedText>
+          <ThemedText style={styles.sourceNote}>{t('home.sourceNote')}</ThemedText>
         ) : null}
-      </View>
-
-      <View style={styles.usernameRow}>
-        <View style={styles.usernameInputWrap}>
-          <ThemedText style={styles.usernamePrefix}>@</ThemedText>
-          <TextInput
-            value={usernameInput}
-            onChangeText={setUsernameInput}
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="instagram username"
-            placeholderTextColor={theme.mutedText}
-            selectionColor={theme.accent}
-            style={styles.usernameInput}
-          />
-        </View>
       </View>
 
       <View style={styles.actionsRow}>
@@ -114,18 +101,20 @@ export function ProfileHeader({
           onPress={onPickPhotos}
           style={({ pressed }) => [styles.primaryButton, { opacity: pressed || isLoadingProfile ? 0.8 : 1 }]}
         >
-          <ThemedText style={styles.buttonText}>{isPicking ? 'Opening...' : 'Add photos'}</ThemedText>
+          <ThemedText style={styles.buttonText}>{isPicking ? t('home.opening') : t('home.addPhotos')}</ThemedText>
         </Pressable>
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={onLoadProfile}
-          style={({ pressed }) => [styles.secondaryButton, { opacity: pressed ? 0.78 : 1 }]}
-        >
-          <ThemedText style={styles.buttonText}>
-            {isLoadingProfile ? 'Loading' : profileLoaded ? 'Refresh profile' : 'Try profile'}
-          </ThemedText>
-        </Pressable>
+        {profileLoaded ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={onLoadProfile}
+            style={({ pressed }) => [styles.secondaryButton, { opacity: pressed || isLoadingProfile ? 0.78 : 1 }]}
+          >
+            <ThemedText style={styles.buttonText}>
+              {isLoadingProfile ? t('home.loading') : t('home.refreshProfile')}
+            </ThemedText>
+          </Pressable>
+        ) : null}
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.highlightRow}>
@@ -144,7 +133,7 @@ export function ProfileHeader({
           <View style={styles.highlightCircle}>
             <Ionicons name="add" size={32} color={theme.mutedText} />
           </View>
-          <ThemedText style={styles.highlightLabel}>New</ThemedText>
+          <ThemedText style={styles.highlightLabel}>{t('home.newHighlight')}</ThemedText>
         </View>
       </ScrollView>
     </View>

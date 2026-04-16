@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 
 import { DEFAULT_PROXY_BASE_URL } from '@/features/home/constants';
+import { i18n } from '@/i18n';
 import type { InstagramProfileLoadResult, ProfileHighlight, GalleryPhoto } from '@/features/home/types';
 import { formatCount, normalizeUsername } from '@/features/home/utils/profile';
 
@@ -74,7 +75,7 @@ export async function fetchInstagramProfile(username: string): Promise<Instagram
     source: data.source,
     username: data.username || normalizedUsername,
     displayName: data.fullName?.trim() || data.username || normalizedUsername,
-    biography: data.biography?.trim() || 'Public Instagram profile imported into your grid.',
+    biography: data.biography?.trim() || i18n.t('home.importedProfileBio'),
     profilePictureUrl: data.profilePictureUrl ?? '',
     postsCount: typeof data.postsCount === 'number' ? data.postsCount : data.photos?.length ?? 0,
     followers: formatCount(data.followersCount),

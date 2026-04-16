@@ -2,28 +2,23 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useSortableList } from 'react-native-drax';
+import { useTranslation } from 'react-i18next';
 
 import { fetchInstagramProfile } from '@/features/home/api/instagram';
-import {
-  BLANK_PROFILE_BIO,
-  DEFAULT_BIO,
-  DEFAULT_DISPLAY_NAME,
-  DEFAULT_USERNAME,
-  GRID_COLUMNS,
-} from '@/features/home/constants';
+import { GRID_COLUMNS } from '@/features/home/constants';
 import type { GalleryPhoto, PersistedHomeState, ProfileHighlight } from '@/features/home/types';
 import { mergePhotos, getPersistentPhotoUri, splitPhotosByLock } from '@/features/home/utils/photos';
 import { readPersistedHomeState, writePersistedHomeState } from '@/features/home/utils/persistence';
 import { formatCount, normalizeUsername } from '@/features/home/utils/profile';
 
 export function useHomeScreen() {
+  const { t } = useTranslation();
   const profileLoadLockRef = useRef(false);
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [isPicking, setIsPicking] = useState(false);
-  const [usernameInput, setUsernameInput] = useState(DEFAULT_USERNAME);
-  const [profileName, setProfileName] = useState(DEFAULT_USERNAME);
-  const [displayName, setDisplayName] = useState(DEFAULT_DISPLAY_NAME);
-  const [bio, setBio] = useState(DEFAULT_BIO);
+  const [profileName, setProfileName] = useState<string>(() => t('home.blankProfileName'));
+  const [displayName, setDisplayName] = useState<string>(() => t('home.defaultDisplayName'));
+  const [bio, setBio] = useState<string>(() => t('home.defaultBio'));
   const [avatarUrl, setAvatarUrl] = useState('');
   const [postsCount, setPostsCount] = useState('0');
   const [followers, setFollowers] = useState('0');
@@ -35,7 +30,6 @@ export function useHomeScreen() {
   const [hasHydratedState, setHasHydratedState] = useState(false);
 
   const applyPersistedState = useCallback((snapshot: PersistedHomeState) => {
-    setUsernameInput(snapshot.usernameInput);
     setProfileName(snapshot.profileName);
     setDisplayName(snapshot.displayName);
     setBio(snapshot.bio);
@@ -66,9 +60,9 @@ export function useHomeScreen() {
   const resetProfileToBlank = useCallback((nextUsername: string) => {
     const normalizedUsername = normalizeUsername(nextUsername);
 
-    setProfileName(normalizedUsername || 'username');
-    setDisplayName(normalizedUsername || 'Instagram profile');
-    setBio(BLANK_PROFILE_BIO);
+    setProfileName(normalizedUsername || t('home.blankProfileName'));
+    setDisplayName(normalizedUsername || t('home.blankProfileDisplayName'));
+    setBio(t('home.blankProfileBio'));
     setAvatarUrl('');
     setPostsCount('0');
     setFollowers('0');
@@ -77,7 +71,7 @@ export function useHomeScreen() {
     setPhotos([]);
     setProfileLoaded(false);
     setProfileSource('');
-  }, []);
+  }, [t]);
 
   const loadProfile = useCallback(
     async (requestedUsername: string) => {
@@ -85,7 +79,7 @@ export function useHomeScreen() {
 
       if (!normalizedUsername || profileLoadLockRef.current) {
         if (!normalizedUsername) {
-          Alert.alert('Username needed', 'Enter an Instagram username to load a public profile grid.');
+          Alert.alert(t('home.alerts.usernameNeededTitle'), t('home.alerts.usernameNeededMessage'));
         }
 
         return;
@@ -98,7 +92,6 @@ export function useHomeScreen() {
         const profile = await fetchInstagramProfile(normalizedUsername);
 
         setProfileName(profile.username);
-        setUsernameInput(profile.username);
         setDisplayName(profile.displayName);
         setBio(profile.biography);
         setAvatarUrl(profile.profilePictureUrl);
@@ -114,24 +107,15 @@ export function useHomeScreen() {
 
         if (error instanceof Error) {
           if (error.message === 'PROFILE_PRIVATE') {
-            Alert.alert(
-              'Private profile',
-              'That Instagram account is private, so its posts cannot be used for the grid.'
-            );
+            Alert.alert(t('home.alerts.privateProfileTitle'), t('home.alerts.privateProfileMessage'));
           } else if (error.message === 'PROFILE_NOT_FOUND') {
-            Alert.alert('Profile not found', 'That Instagram username does not exist. Try another public account.');
+            Alert.alert(t('home.alerts.profileNotFoundTitle'), t('home.alerts.profileNotFoundMessage'));
           } else if (error.message === 'EMPTY_USERNAME') {
-            Alert.alert('Username needed', 'Enter an Instagram username to load a public profile grid.');
+            Alert.alert(t('home.alerts.usernameNeededTitle'), t('home.alerts.usernameNeededMessage'));
           } else if (error.message === 'PROXY_NOT_CONFIGURED') {
-            Alert.alert(
-              'Proxy not configured',
-              'Set EXPO_PUBLIC_INSTAGRAM_PROXY_URL or run npm run instagram-proxy before loading a profile.'
-            );
+            Alert.alert(t('home.alerts.proxyNotConfiguredTitle'), t('home.alerts.proxyNotConfiguredMessage'));
           } else {
-            Alert.alert(
-              'Profile unavailable',
-              'Instagram did not return a usable public profile. The grid has been cleared.'
-            );
+            Alert.alert(t('home.alerts.profileUnavailableTitle'), t('home.alerts.profileUnavailableMessage'));
           }
         }
       } finally {
@@ -139,7 +123,7 @@ export function useHomeScreen() {
         setIsLoadingProfile(false);
       }
     },
-    [resetProfileToBlank]
+    [resetProfileToBlank, t]
   );
 
   useEffect(() => {
@@ -155,14 +139,6 @@ export function useHomeScreen() {
           }
 
           return;
-        }
-
-        if (DEFAULT_USERNAME) {
-          await loadProfile(DEFAULT_USERNAME);
-        }
-      } catch {
-        if (DEFAULT_USERNAME) {
-          await loadProfile(DEFAULT_USERNAME);
         }
       } finally {
         if (!isCancelled) {
@@ -187,7 +163,6 @@ export function useHomeScreen() {
       try {
         await writePersistedHomeState({
           version: 1,
-          usernameInput,
           profileName,
           displayName,
           bio,
@@ -219,7 +194,6 @@ export function useHomeScreen() {
     profileLoaded,
     profileName,
     profileSource,
-    usernameInput,
   ]);
 
   const pickPhotos = useCallback(async () => {
@@ -234,10 +208,7 @@ export function useHomeScreen() {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
         if (!permission.granted) {
-          Alert.alert(
-            'Photo access needed',
-            'Please allow photo library access so you can build your gallery grid.'
-          );
+          Alert.alert(t('home.alerts.photoAccessNeededTitle'), t('home.alerts.photoAccessNeededMessage'));
           return;
         }
       }
@@ -270,11 +241,11 @@ export function useHomeScreen() {
         return mergePhotos([...unlocked, ...nextPhotos], locked);
       });
     } catch {
-      Alert.alert('Unable to open gallery', 'Please try picking your photos again.');
+      Alert.alert(t('home.alerts.unableToOpenGalleryTitle'), t('home.alerts.unableToOpenGalleryMessage'));
     } finally {
       setIsPicking(false);
     }
-  }, [isPicking]);
+  }, [isPicking, t]);
 
   const removePhoto = useCallback((photoId: string) => {
     setPhotos((current) => current.filter((photo) => photo.id !== photoId || photo.locked));
@@ -299,7 +270,5 @@ export function useHomeScreen() {
     sortable,
     loadProfile,
     pickPhotos,
-    setUsernameInput,
-    usernameInput,
   };
 }

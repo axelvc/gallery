@@ -22,6 +22,16 @@ export function createHomeScreenStyles(theme: AppThemeColors) {
       paddingHorizontal: Layout.spacing.lg,
       paddingBottom: 18,
     },
+    topBar: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 32,
+    },
+    topBarTitle: {
+      fontSize: 16,
+      lineHeight: 20,
+      color: theme.text,
+    },
     identityRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -97,35 +107,6 @@ export function createHomeScreenStyles(theme: AppThemeColors) {
       lineHeight: 16,
       marginTop: Layout.spacing.xs,
       color: theme.mutedText,
-    },
-    usernameRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: Layout.spacing.sm,
-    },
-    usernameInputWrap: {
-      flex: 1,
-      minHeight: Layout.sizes.inputHeight,
-      borderRadius: Layout.radius.md,
-      borderWidth: 1,
-      paddingHorizontal: Layout.spacing.md,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: Layout.spacing.xxs,
-      backgroundColor: theme.actionSurface,
-      borderColor: theme.border,
-    },
-    usernamePrefix: {
-      fontSize: 15,
-      lineHeight: 18,
-      color: theme.mutedText,
-    },
-    usernameInput: {
-      flex: 1,
-      fontSize: 15,
-      lineHeight: 18,
-      paddingVertical: 0,
-      color: theme.text,
     },
     actionsRow: {
       flexDirection: 'row',

@@ -1,13 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-import {
-  DEFAULT_BIO,
-  DEFAULT_DISPLAY_NAME,
-  HOME_SCREEN_DB_NAME,
-  HOME_SCREEN_DB_STORE,
-  HOME_SCREEN_STATE_STORAGE_KEY,
-} from '@/features/home/constants';
+import { HOME_SCREEN_DB_NAME, HOME_SCREEN_DB_STORE, HOME_SCREEN_STATE_STORAGE_KEY } from '@/features/home/constants';
+import { i18n } from '@/i18n';
 import type { GalleryPhoto, PersistedHomeState, ProfileHighlight } from '@/features/home/types';
 
 function openHomeStateDatabase(): Promise<IDBDatabase> {
@@ -48,6 +43,32 @@ async function readPersistedHomeStateValue() {
       reject(request.error ?? new Error('Failed to read persisted home state.'));
       database.close();
     };
+  });
+}
+
+async function clearPersistedHomeStateValue() {
+  if (Platform.OS !== 'web' || typeof indexedDB === 'undefined') {
+    await AsyncStorage.removeItem(HOME_SCREEN_STATE_STORAGE_KEY);
+    return;
+  }
+
+  const database = await openHomeStateDatabase();
+
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(HOME_SCREEN_DB_STORE, 'readwrite');
+    const store = transaction.objectStore(HOME_SCREEN_DB_STORE);
+
+    transaction.oncomplete = () => {
+      resolve();
+      database.close();
+    };
+
+    transaction.onerror = () => {
+      reject(transaction.error ?? new Error('Failed to clear persisted home state.'));
+      database.close();
+    };
+
+    store.delete(HOME_SCREEN_STATE_STORAGE_KEY);
   });
 }
 
@@ -110,10 +131,13 @@ export function parsePersistedHomeState(value: string | null): PersistedHomeStat
 
     return {
       version: 1,
-      usernameInput: typeof parsed.usernameInput === 'string' ? parsed.usernameInput : '',
-      profileName: typeof parsed.profileName === 'string' ? parsed.profileName : '',
-      displayName: typeof parsed.displayName === 'string' ? parsed.displayName : DEFAULT_DISPLAY_NAME,
-      bio: typeof parsed.bio === 'string' ? parsed.bio : DEFAULT_BIO,
+      profileName:
+        typeof parsed.profileName === 'string' && parsed.profileName
+          ? parsed.profileName
+          : i18n.t('home.blankProfileName'),
+      displayName:
+        typeof parsed.displayName === 'string' ? parsed.displayName : i18n.t('home.defaultDisplayName'),
+      bio: typeof parsed.bio === 'string' ? parsed.bio : i18n.t('home.defaultBio'),
       avatarUrl: typeof parsed.avatarUrl === 'string' ? parsed.avatarUrl : '',
       postsCount: typeof parsed.postsCount === 'string' ? parsed.postsCount : '0',
       followers: typeof parsed.followers === 'string' ? parsed.followers : '0',
@@ -144,4 +168,8 @@ export async function readPersistedHomeState() {
 
 export async function writePersistedHomeState(snapshot: PersistedHomeState) {
   await writePersistedHomeStateValue(JSON.stringify(snapshot));
+}
+
+export async function clearPersistedHomeState() {
+  await clearPersistedHomeStateValue();
 }

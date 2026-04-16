@@ -2,6 +2,7 @@ import type { RefObject } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 import {
   DraxProvider,
   SortableContainer,
@@ -23,6 +24,8 @@ type PhotoGridProps = {
 };
 
 export function PhotoGrid({ gridSize, onRemovePhoto, photos, scrollRef, sortable, styles }: PhotoGridProps) {
+  const { t } = useTranslation();
+
   return (
     <DraxProvider style={styles.listProvider}>
       <SortableContainer sortable={sortable} scrollRef={scrollRef} style={styles.listContainer}>
@@ -55,7 +58,7 @@ export function PhotoGrid({ gridSize, onRemovePhoto, photos, scrollRef, sortable
                     </View>
                   ) : (
                     <Pressable
-                      accessibilityLabel="Remove photo"
+                      accessibilityLabel={t('home.removePhoto')}
                       accessibilityRole="button"
                       onPress={() => onRemovePhoto(item.id)}
                       style={styles.removeButton}

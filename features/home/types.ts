@@ -27,7 +27,6 @@ export type InstagramProfileLoadResult = {
 
 export type PersistedHomeState = {
   version: 1;
-  usernameInput: string;
   profileName: string;
   displayName: string;
   bio: string;

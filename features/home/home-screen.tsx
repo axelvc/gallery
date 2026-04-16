@@ -39,8 +39,6 @@ export function HomeScreen() {
     sortable,
     loadProfile,
     pickPhotos,
-    setUsernameInput,
-    usernameInput,
   } = useHomeScreen();
 
   const gridSize = useMemo(() => {
@@ -68,16 +66,14 @@ export function HomeScreen() {
             highlights={highlights}
             isLoadingProfile={isLoadingProfile}
             isPicking={isPicking}
-            onLoadProfile={() => void loadProfile(usernameInput)}
+            onLoadProfile={() => void loadProfile(profileName)}
             onPickPhotos={pickPhotos}
             postsCount={postsCount}
             profileLoaded={profileLoaded}
             profileName={profileName}
             profileSource={profileSource}
-            setUsernameInput={setUsernameInput}
             styles={styles}
             theme={theme}
-            usernameInput={usernameInput}
           />
 
           <View style={styles.tabBar}>
