@@ -11,7 +11,10 @@ export function createHomeScreenStyles(theme: AppThemeColors) {
     },
     screen: {
       flex: 1,
-      paddingBottom: Layout.spacing.lg,
+      backgroundColor: theme.background,
+    },
+    scrollContent: {
+      paddingBottom: Layout.spacing.xxl,
       backgroundColor: theme.background,
     },
     header: {
@@ -244,15 +247,15 @@ export function createHomeScreenStyles(theme: AppThemeColors) {
       color: theme.accent,
     },
     listContent: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
       margin: 'auto',
-      paddingBottom: Layout.spacing.xxl,
-      paddingHorizontal: 1.5,
     },
     listProvider: {
-      flex: 1,
+      width: '100%',
     },
     listContainer: {
-      flex: 1,
+      width: '100%',
     },
     sortableItem: {
       borderRadius: 0,

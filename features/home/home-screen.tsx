@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { useRef } from 'react';
+import { ScrollView, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -14,6 +15,7 @@ import { useHomeScreen } from '@/features/home/hooks/use-home-screen';
 import { createHomeScreenStyles } from '@/features/home/styles';
 
 export function HomeScreen() {
+  const scrollRef = useRef<ScrollView>(null);
   const colorScheme = useColorScheme() ?? 'light';
   const { width } = useWindowDimensions();
   const theme = Colors[colorScheme];
@@ -49,50 +51,60 @@ export function HomeScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <ThemedView style={styles.screen}>
-        <ProfileHeader
-          avatarUrl={avatarUrl}
-          bio={bio}
-          displayName={displayName}
-          followers={followers}
-          following={following}
-          highlights={highlights}
-          isLoadingProfile={isLoadingProfile}
-          isPicking={isPicking}
-          onLoadProfile={() => void loadProfile(usernameInput)}
-          onPickPhotos={pickPhotos}
-          postsCount={postsCount}
-          profileLoaded={profileLoaded}
-          profileName={profileName}
-          profileSource={profileSource}
-          setUsernameInput={setUsernameInput}
-          styles={styles}
-          theme={theme}
-          usernameInput={usernameInput}
-        />
-
-        <View style={styles.tabBar}>
-          <View style={styles.tabItemActive}>
-            <Ionicons name="grid-outline" size={22} color={theme.text} />
-          </View>
-          <View style={styles.tabItem}>
-            <Ionicons name="bookmark-outline" size={22} color={theme.mutedText} />
-          </View>
-          <View style={styles.tabItem}>
-            <Ionicons name="person-circle-outline" size={24} color={theme.mutedText} />
-          </View>
-        </View>
-
-        {hasPhotos ? (
-          <PhotoGrid
-            gridSize={gridSize}
-            onRemovePhoto={removePhoto}
-            photos={photos}
-            sortable={sortable}
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={styles.scrollContent}
+          onContentSizeChange={sortable.onContentSizeChange}
+          onScroll={sortable.onScroll}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+        >
+          <ProfileHeader
+            avatarUrl={avatarUrl}
+            bio={bio}
+            displayName={displayName}
+            followers={followers}
+            following={following}
+            highlights={highlights}
+            isLoadingProfile={isLoadingProfile}
+            isPicking={isPicking}
+            onLoadProfile={() => void loadProfile(usernameInput)}
+            onPickPhotos={pickPhotos}
+            postsCount={postsCount}
+            profileLoaded={profileLoaded}
+            profileName={profileName}
+            profileSource={profileSource}
+            setUsernameInput={setUsernameInput}
             styles={styles}
+            theme={theme}
+            usernameInput={usernameInput}
           />
-        ) : (
-          <EmptyGalleryState onPickPhotos={pickPhotos} styles={styles} theme={theme} />
-        )}
+
+          <View style={styles.tabBar}>
+            <View style={styles.tabItemActive}>
+              <Ionicons name="grid-outline" size={22} color={theme.text} />
+            </View>
+            <View style={styles.tabItem}>
+              <Ionicons name="bookmark-outline" size={22} color={theme.mutedText} />
+            </View>
+            <View style={styles.tabItem}>
+              <Ionicons name="person-circle-outline" size={24} color={theme.mutedText} />
+            </View>
+          </View>
+
+          {hasPhotos ? (
+            <PhotoGrid
+              gridSize={gridSize}
+              onRemovePhoto={removePhoto}
+              photos={photos}
+              scrollRef={scrollRef}
+              sortable={sortable}
+              styles={styles}
+            />
+          ) : (
+            <EmptyGalleryState onPickPhotos={pickPhotos} styles={styles} theme={theme} />
+          )}
+        </ScrollView>
       </ThemedView>
     </SafeAreaView>
   );

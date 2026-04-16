@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { FlatList, Pressable, View } from 'react-native';
+import type { RefObject } from 'react';
+import { Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import {
@@ -17,32 +17,19 @@ type PhotoGridProps = {
   gridSize: number;
   onRemovePhoto: (photoId: string) => void;
   photos: GalleryPhoto[];
+  scrollRef: RefObject<ScrollView | null>;
   sortable: SortableListHandle<GalleryPhoto>;
   styles: HomeScreenStyles;
 };
 
-export function PhotoGrid({ gridSize, onRemovePhoto, photos, sortable, styles }: PhotoGridProps) {
-  const listRef = useRef<FlatList<GalleryPhoto>>(null);
-
+export function PhotoGrid({ gridSize, onRemovePhoto, photos, scrollRef, sortable, styles }: PhotoGridProps) {
   return (
     <DraxProvider style={styles.listProvider}>
-      <SortableContainer sortable={sortable} scrollRef={listRef} style={styles.listContainer}>
-        <FlatList
-          ref={listRef}
-          data={sortable.data}
-          numColumns={GRID_COLUMNS}
-          keyExtractor={sortable.stableKeyExtractor}
-          onScroll={sortable.onScroll}
-          onContentSizeChange={sortable.onContentSizeChange}
-          scrollEventThrottle={16}
-          initialNumToRender={photos.length}
-          windowSize={100}
-          maxToRenderPerBatch={photos.length}
-          removeClippedSubviews={false}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item, index }) => (
+      <SortableContainer sortable={sortable} scrollRef={scrollRef} style={styles.listContainer}>
+        <View style={styles.listContent}>
+          {sortable.data.map((item, index) => (
             <SortableItem
+              key={sortable.stableKeyExtractor(item, index)}
               sortable={sortable}
               index={index}
               fixed={item.locked}
@@ -79,8 +66,8 @@ export function PhotoGrid({ gridSize, onRemovePhoto, photos, sortable, styles }:
                 </View>
               </View>
             </SortableItem>
-          )}
-        />
+          ))}
+        </View>
       </SortableContainer>
     </DraxProvider>
   );
