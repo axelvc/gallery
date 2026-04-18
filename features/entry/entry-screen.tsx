@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -127,64 +127,76 @@ export function EntryScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <ThemedView style={styles.screen}>
-        <View style={styles.content}>
-          <View style={styles.heroBlock}>
-            <ThemedText type="title" style={styles.title}>
-              {t('entry.title')}
-            </ThemedText>
-            <ThemedText style={styles.subtitle}>{t('entry.subtitle')}</ThemedText>
-          </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardAvoid}
+        >
+          <ScrollView
+            contentContainerStyle={styles.content}
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.heroBlock}>
+              <ThemedText type="title" style={styles.title}>
+                {t('entry.title')}
+              </ThemedText>
+              <ThemedText style={styles.subtitle}>{t('entry.subtitle')}</ThemedText>
+            </View>
 
-          <View style={styles.optionsBlock}>
-            <Pressable
-              accessibilityRole="button"
-              disabled={isSubmitting}
-              onPress={() => void handleStartBlank()}
-              style={({ pressed }) => [styles.primaryOption, { opacity: pressed || isSubmitting ? 0.86 : 1 }]}
-            >
-              <ThemedText style={styles.optionTitle}>{t('entry.startBlank')}</ThemedText>
-              <ThemedText style={styles.optionCopy}>{t('entry.startBlankCopy')}</ThemedText>
-            </Pressable>
+            <View style={styles.optionsBlock}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={isSubmitting}
+                onPress={() => void handleStartBlank()}
+                style={({ pressed }) => [styles.primaryOption, { opacity: pressed || isSubmitting ? 0.86 : 1 }]}
+              >
+                <ThemedText style={styles.optionTitle}>{t('entry.startBlank')}</ThemedText>
+                <ThemedText style={styles.optionCopy}>{t('entry.startBlankCopy')}</ThemedText>
+              </Pressable>
 
-            <Pressable
-              accessibilityRole="button"
-              disabled={isSubmitting}
-              onPress={() => setShowProfileForm((current) => !current)}
-              style={({ pressed }) => [styles.secondaryOption, { opacity: pressed || isSubmitting ? 0.86 : 1 }]}
-            >
-              <ThemedText style={styles.optionTitle}>{t('entry.useProfile')}</ThemedText>
-              <ThemedText style={styles.optionCopy}>{t('entry.useProfileCopy')}</ThemedText>
-            </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={isSubmitting}
+                onPress={() => setShowProfileForm((current) => !current)}
+                style={({ pressed }) => [styles.secondaryOption, { opacity: pressed || isSubmitting ? 0.86 : 1 }]}
+              >
+                <ThemedText style={styles.optionTitle}>{t('entry.useProfile')}</ThemedText>
+                <ThemedText style={styles.optionCopy}>{t('entry.useProfileCopy')}</ThemedText>
+              </Pressable>
 
-            {showProfileForm ? (
-              <View style={styles.formCard}>
-                <ThemedText type="defaultSemiBold" style={styles.formTitle}>
-                  {t('entry.formTitle')}
-                </ThemedText>
-                <TextInput
-                  value={username}
-                  onChangeText={setUsername}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  placeholder={t('home.usernamePlaceholder')}
-                  placeholderTextColor={theme.mutedText}
-                  selectionColor={theme.accent}
-                  style={styles.usernameInput}
-                />
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={isSubmitting}
-                  onPress={() => void handleUseProfile()}
-                  style={({ pressed }) => [styles.submitButton, { opacity: pressed || isSubmitting ? 0.86 : 1 }]}
-                >
-                  <ThemedText style={styles.submitButtonText}>
-                    {isSubmitting ? t('home.loading') : t('entry.continue')}
+              {showProfileForm ? (
+                <View style={styles.formCard}>
+                  <ThemedText type="defaultSemiBold" style={styles.formTitle}>
+                    {t('entry.formTitle')}
                   </ThemedText>
-                </Pressable>
-              </View>
-            ) : null}
-          </View>
-        </View>
+                  <TextInput
+                    value={username}
+                    onChangeText={setUsername}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    placeholder={t('home.usernamePlaceholder')}
+                    placeholderTextColor={theme.mutedText}
+                    returnKeyType="done"
+                    selectionColor={theme.accent}
+                    onSubmitEditing={() => void handleUseProfile()}
+                    style={styles.usernameInput}
+                  />
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={isSubmitting}
+                    onPress={() => void handleUseProfile()}
+                    style={({ pressed }) => [styles.submitButton, { opacity: pressed || isSubmitting ? 0.86 : 1 }]}
+                  >
+                    <ThemedText style={styles.submitButtonText}>
+                      {isSubmitting ? t('home.loading') : t('entry.continue')}
+                    </ThemedText>
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </ThemedView>
     </SafeAreaView>
   );

@@ -13,10 +13,14 @@ export function createEntryScreenStyles(theme: AppThemeColors) {
       flex: 1,
       backgroundColor: theme.background,
     },
-    content: {
+    keyboardAvoid: {
       flex: 1,
+    },
+    content: {
+      flexGrow: 1,
       justifyContent: 'center',
       paddingHorizontal: Layout.spacing.xl,
+      paddingVertical: Layout.spacing.xl,
       gap: Layout.spacing.xxl,
     },
     heroBlock: {
