@@ -1,4 +1,4 @@
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { AppThemeColors, Layout } from '@/constants/theme';
 
@@ -6,7 +6,7 @@ export function createHomeScreenStyles(theme: AppThemeColors) {
   return StyleSheet.create({
     safeArea: {
       flex: 1,
-      marginTop: Platform.OS === 'web' ? Layout.sizes.safeAreaTopWeb : 0,
+      marginTop: Layout.sizes.safeAreaTop,
       backgroundColor: theme.background,
     },
     screen: {
@@ -23,6 +23,7 @@ export function createHomeScreenStyles(theme: AppThemeColors) {
       paddingBottom: 18,
     },
     topBar: {
+      position: 'relative',
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: 32,
@@ -33,8 +34,8 @@ export function createHomeScreenStyles(theme: AppThemeColors) {
       color: theme.text,
     },
     topBarMenuButton: {
-      width: 34,
-      height: 34,
+      width: 32,
+      height: 32,
       borderRadius: Layout.radius.full,
       alignItems: 'center',
       justifyContent: 'center',

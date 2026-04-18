@@ -71,6 +71,7 @@ export const Layout = {
     full: 999,
   },
   sizes: {
+    safeAreaTop: 16,
     safeAreaTopWeb: 16,
     avatarOuter: 86,
     avatarInner: 78,
