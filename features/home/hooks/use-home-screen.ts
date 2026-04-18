@@ -251,6 +251,10 @@ export function useHomeScreen() {
     setPhotos((current) => current.filter((photo) => photo.id !== photoId || photo.locked));
   }, []);
 
+  const refreshAddedPhotos = useCallback(() => {
+    setPhotos((current) => splitPhotosByLock(current).locked);
+  }, []);
+
   return {
     avatarUrl,
     bio,
@@ -267,6 +271,7 @@ export function useHomeScreen() {
     profileName,
     profileSource,
     removePhoto,
+    refreshAddedPhotos,
     sortable,
     loadProfile,
     pickPhotos,

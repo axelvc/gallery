@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -5,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { AppThemeColors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
+import { HeaderMenu } from '@/features/home/components/header-menu';
 import type { HomeScreenStyles } from '@/features/home/styles';
 import type { ProfileHighlight } from '@/features/home/types';
 
@@ -15,7 +17,9 @@ type ProfileHeaderProps = {
   highlights: ProfileHighlight[];
   isLoadingProfile: boolean;
   isPicking: boolean;
-  onLoadProfile: () => void;
+  onRefreshAddedPhotos: () => void;
+  onResetProfile: () => void;
+  onStartOver: () => void;
   onPickPhotos: () => void;
   postsCount: string;
   followers: string;
@@ -36,7 +40,9 @@ export function ProfileHeader({
   highlights,
   isLoadingProfile,
   isPicking,
-  onLoadProfile,
+  onRefreshAddedPhotos,
+  onResetProfile,
+  onStartOver,
   onPickPhotos,
   postsCount,
   profileLoaded,
@@ -46,6 +52,7 @@ export function ProfileHeader({
   theme,
 }: ProfileHeaderProps) {
   const { t } = useTranslation();
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
 
   const stats = [
     { label: t('home.stats.posts'), value: postsCount },
@@ -55,10 +62,30 @@ export function ProfileHeader({
 
   return (
     <View style={styles.header}>
+      <HeaderMenu
+        onBack={onStartOver}
+        onClose={() => setIsMenuVisible(false)}
+        onRefresh={onRefreshAddedPhotos}
+        onReset={onResetProfile}
+        profileLoaded={profileLoaded}
+        styles={styles}
+        theme={theme}
+        visible={isMenuVisible}
+      />
+
       <View style={styles.topBar}>
         <ThemedText type="defaultSemiBold" style={styles.topBarTitle}>
           @{profileName}
         </ThemedText>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={String(t('home.menu.title'))}
+          onPress={() => setIsMenuVisible(true)}
+          style={({ pressed }) => [styles.topBarMenuButton, { opacity: pressed ? 0.72 : 1 }]}
+        >
+          <Ionicons name="ellipsis-horizontal" size={18} color={theme.text} />
+        </Pressable>
       </View>
 
       <View style={styles.identityRow}>
@@ -103,18 +130,6 @@ export function ProfileHeader({
         >
           <ThemedText style={styles.buttonText}>{isPicking ? t('home.opening') : t('home.addPhotos')}</ThemedText>
         </Pressable>
-
-        {profileLoaded ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={onLoadProfile}
-            style={({ pressed }) => [styles.secondaryButton, { opacity: pressed || isLoadingProfile ? 0.78 : 1 }]}
-          >
-            <ThemedText style={styles.buttonText}>
-              {isLoadingProfile ? t('home.loading') : t('home.refreshProfile')}
-            </ThemedText>
-          </Pressable>
-        ) : null}
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.highlightRow}>

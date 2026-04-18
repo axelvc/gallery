@@ -34,6 +34,14 @@ export const resources = {
         opening: 'Opening...',
         loading: 'Loading',
         refreshProfile: 'Refresh profile',
+        menu: {
+          title: 'Menu',
+          subtitle: 'Manage your gallery without losing the imported profile.',
+          refresh: 'Refresh',
+          reset: 'Reset',
+          back: 'Back',
+          cancel: 'Cancel'
+        },
         tryProfile: 'Try profile',
         newHighlight: 'New',
         emptyTitle: 'Share your first photo',
@@ -98,6 +106,14 @@ export const resources = {
         opening: 'Abriendo...',
         loading: 'Cargando',
         refreshProfile: 'Actualizar perfil',
+        menu: {
+          title: 'Menú',
+          subtitle: 'Administra tu galería sin perder el perfil importado.',
+          refresh: 'Refrescar',
+          reset: 'Reiniciar',
+          back: 'Volver',
+          cancel: 'Cancelar'
+        },
         tryProfile: 'Probar perfil',
         newHighlight: 'Nuevo',
         emptyTitle: 'Comparte tu primera foto',

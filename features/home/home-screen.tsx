@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { ScrollView, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -13,6 +14,7 @@ import { ProfileHeader } from '@/features/home/components/profile-header';
 import { GRID_COLUMNS, GRID_GAP } from '@/features/home/constants';
 import { useHomeScreen } from '@/features/home/hooks/use-home-screen';
 import { createHomeScreenStyles } from '@/features/home/styles';
+import { clearPersistedHomeState } from '@/features/home/utils/persistence';
 
 export function HomeScreen() {
   const scrollRef = useRef<ScrollView>(null);
@@ -36,6 +38,7 @@ export function HomeScreen() {
     profileName,
     profileSource,
     removePhoto,
+    refreshAddedPhotos,
     sortable,
     loadProfile,
     pickPhotos,
@@ -66,7 +69,17 @@ export function HomeScreen() {
             highlights={highlights}
             isLoadingProfile={isLoadingProfile}
             isPicking={isPicking}
-            onLoadProfile={() => void loadProfile(profileName)}
+            onRefreshAddedPhotos={refreshAddedPhotos}
+            onResetProfile={() => void loadProfile(profileName)}
+            onStartOver={() =>
+              void (async () => {
+                try {
+                  await clearPersistedHomeState();
+                } finally {
+                  router.replace('/');
+                }
+              })()
+            }
             onPickPhotos={pickPhotos}
             postsCount={postsCount}
             profileLoaded={profileLoaded}
