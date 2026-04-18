@@ -55,6 +55,8 @@ export function HomeScreen() {
         <DraxProvider>
           <DraxScrollView
             ref={scrollRef}
+            autoScrollBackThreshold={0.04}
+            autoScrollForwardThreshold={0.96}
             contentContainerStyle={styles.scrollContent}
             onContentSizeChange={sortable.onContentSizeChange}
             onScroll={sortable.onScroll}
