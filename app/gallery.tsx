@@ -1,5 +1,5 @@
 import { HomeScreen } from '@/features/home/home-screen';
 
-export default function Index() {
+export default function GalleryRoute() {
   return <HomeScreen />;
 }

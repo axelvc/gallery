@@ -7,19 +7,28 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import '@/i18n';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack screenOptions={{ headerShown: false, animationDuration: 220 }}>
+          <Stack.Screen
+            name="index"
+            options={{
+              // Makes `router.replace('/')` feel like a natural back/pop.
+              animationTypeForReplace: 'pop',
+            }}
+          />
+          <Stack.Screen
+            name="gallery"
+            options={{
+              animation: 'slide_from_right',
+              // Makes `router.replace('/gallery')` feel like a normal push.
+              animationTypeForReplace: 'push',
+            }}
+          />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

@@ -14,8 +14,8 @@
 - Runtime entrypoint is `expo-router/entry` from `package.json`; do not change `main` casually.
 - Routing is minimal:
   - `app/_layout.tsx` = root layout
-  - `app/(tabs)/_layout.tsx` = hidden tab shell
-  - `app/(tabs)/index.tsx` = thin wrapper that renders `@/features/home/home-screen`
+  - `app/index.tsx` = landing route (renders `@/features/entry/entry-screen`)
+  - `app/gallery.tsx` = gallery route (renders `@/features/home/home-screen`)
 - Real app logic lives in `features/home/`, not in route files.
 - Imports use the `@/*` path alias from `tsconfig.json`.
 
