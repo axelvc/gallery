@@ -44,12 +44,15 @@ export function PhotoGrid({ gridSize, onRemovePhoto, photos, scrollRef, sortable
                   margin: GRID_GAP / 2,
                 },
               ]}
-              dragReleasedStyle={styles.dragRelease}
-              draggingStyle={styles.dragging}
-              hoverStyle={styles.hover}
             >
               <View style={[styles.tile, item.locked ? styles.lockedTile : null]}>
-                <Image source={{ uri: item.uri }} style={styles.tileImage} contentFit="cover" />
+                <Image
+                  source={{ uri: item.uri }}
+                  style={styles.tileImage}
+                  contentFit="cover"
+                  transition={0}
+                  recyclingKey={item.id}
+                />
 
                 <View style={styles.tileOverlay}>
                   {item.locked ? (

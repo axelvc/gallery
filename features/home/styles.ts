@@ -48,7 +48,6 @@ export function createHomeScreenStyles(theme: AppThemeColors) {
     },
     menuBackdrop: {
       flex: 1,
-      paddingBottom: Layout.spacing.lg,
       backgroundColor: theme.overlay,
     },
     menuSurface: {
@@ -386,15 +385,6 @@ export function createHomeScreenStyles(theme: AppThemeColors) {
       backgroundColor: theme.overlay,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    hover: {
-      opacity: 0.96,
-    },
-    dragging: {
-      opacity: 0.55,
-    },
-    dragRelease: {
-      opacity: 0.9,
     },
   });
 }
