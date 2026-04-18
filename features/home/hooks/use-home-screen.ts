@@ -7,13 +7,14 @@ import { useTranslation } from 'react-i18next';
 import { fetchInstagramProfile } from '@/features/home/api/instagram';
 import { GRID_COLUMNS } from '@/features/home/constants';
 import type { GalleryPhoto, PersistedHomeState, ProfileHighlight } from '@/features/home/types';
-import { mergePhotos, getPersistentPhotoUri, splitPhotosByLock } from '@/features/home/utils/photos';
+import { isAppOwnedLocalPhotoUri, mergePhotos, persistPickedPhotoAssetUri, splitPhotosByLock } from '@/features/home/utils/photos';
 import { readPersistedHomeState, writePersistedHomeState } from '@/features/home/utils/persistence';
 import { formatCount, normalizeUsername } from '@/features/home/utils/profile';
 
 export function useHomeScreen() {
   const { t } = useTranslation();
   const profileLoadLockRef = useRef(false);
+  const isMountedRef = useRef(true);
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [isPicking, setIsPicking] = useState(false);
   const [profileName, setProfileName] = useState<string>(() => t('home.blankProfileName'));
@@ -127,6 +128,12 @@ export function useHomeScreen() {
   );
 
   useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     let isCancelled = false;
 
     async function restoreHomeState() {
@@ -159,6 +166,18 @@ export function useHomeScreen() {
       return;
     }
 
+    const photosToPersist = photos.filter((photo) => {
+      if (photo.source !== 'local') {
+        return true;
+      }
+
+      if (Platform.OS === 'web') {
+        return photo.uri.startsWith('data:');
+      }
+
+      return isAppOwnedLocalPhotoUri(photo.uri);
+    });
+
     async function persistHomeState() {
       try {
         await writePersistedHomeState({
@@ -173,7 +192,7 @@ export function useHomeScreen() {
           profileLoaded,
           profileSource,
           highlights,
-          photos,
+          photos: photosToPersist,
         });
       } catch (error) {
         console.warn('Failed to persist home screen state.', error);
@@ -217,7 +236,7 @@ export function useHomeScreen() {
         mediaTypes: ['images'],
         allowsMultipleSelection: true,
         orderedSelection: true,
-        base64: true,
+        base64: false,
         quality: 1,
         selectionLimit: 0,
       });
@@ -226,20 +245,59 @@ export function useHomeScreen() {
         return;
       }
 
-      const nextPhotos = result.assets
+      const picked = result.assets
         .filter((asset) => asset.uri)
-        .map((asset, index) => ({
-          id: `${asset.assetId ?? asset.fileName ?? 'photo'}-${Date.now()}-${index}`,
-          uri: getPersistentPhotoUri(asset),
-          locked: false,
-          source: 'local' as const,
-        }));
+        .map((asset, index) => {
+          const id = `${asset.assetId ?? asset.fileName ?? 'photo'}-${Date.now()}-${index}`;
+          const uri = asset.uri;
+
+          return {
+            asset,
+            id,
+            initialUri: uri,
+            photo: {
+              id,
+              uri,
+              locked: false,
+              source: 'local' as const,
+            },
+          };
+        });
+
+      const nextPhotos = picked.map((entry) => entry.photo);
 
       setPhotos((current) => {
         const { unlocked, locked } = splitPhotosByLock(current);
 
         return mergePhotos([...unlocked, ...nextPhotos], locked);
       });
+
+      for (const entry of picked) {
+        void (async () => {
+          try {
+            const persistedUri = await persistPickedPhotoAssetUri(entry.asset, entry.id);
+
+            if (!isMountedRef.current || !persistedUri || persistedUri === entry.initialUri) {
+              return;
+            }
+
+            setPhotos((current) =>
+              current.map((photo) => {
+                if (photo.id !== entry.id || photo.source !== 'local' || photo.uri !== entry.initialUri) {
+                  return photo;
+                }
+
+                return {
+                  ...photo,
+                  uri: persistedUri,
+                };
+              })
+            );
+          } catch (error) {
+            console.warn('Failed to persist picked photo asset.', error);
+          }
+        })();
+      }
     } catch {
       Alert.alert(t('home.alerts.unableToOpenGalleryTitle'), t('home.alerts.unableToOpenGalleryMessage'));
     } finally {
