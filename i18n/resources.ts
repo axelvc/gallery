@@ -3,7 +3,6 @@ export const resources = {
     translation: {
       entry: {
         title: 'Build your gallery',
-        subtitle: 'Start with an empty canvas or load a public Instagram profile before entering the gallery.',
         startBlank: 'Start blank',
         useProfile: 'Use a profile',
         useProfileCopy: 'Enter a public Instagram username, verify it, and open the gallery with that profile loaded.',
@@ -34,8 +33,6 @@ export const resources = {
         loading: 'Loading',
         refreshProfile: 'Refresh profile',
         menu: {
-          title: 'Menu',
-          subtitle: 'Manage your gallery without losing the imported profile.',
           refresh: 'Refresh',
           reset: 'Reset',
           back: 'Back',
@@ -44,8 +41,6 @@ export const resources = {
         tryProfile: 'Try profile',
         newHighlight: 'New',
         emptyTitle: 'Share your first photo',
-        emptyCopy:
-          'Load a public Instagram username to seed the first 18 posts, or add your own photos to start with a blank grid.',
         alerts: {
           usernameNeededTitle: 'Username needed',
           usernameNeededMessage: 'Enter an Instagram username to load a public profile grid.',
@@ -74,7 +69,6 @@ export const resources = {
     translation: {
       entry: {
         title: 'Crea tu galería',
-        subtitle: 'Comienza con un lienzo vacío o carga un perfil público de Instagram antes de entrar a la galería.',
         startBlank: 'Comenzar en blanco',
         useProfile: 'Usar un perfil',
         useProfileCopy: 'Escribe un usuario público de Instagram, verifícalo y abre la galería con ese perfil cargado.',
@@ -98,15 +92,13 @@ export const resources = {
         },
         sourceNote:
           'Cargado desde el HTML público del perfil. Las estadísticas y el avatar están disponibles, pero las imágenes recientes pueden ser limitadas.',
-        usernamePlaceholder: 'usuario de instagram',
+        usernamePlaceholder: '@usuario',
         addPhotos: 'Agregar fotos',
         removePhoto: 'Eliminar foto',
         opening: 'Abriendo...',
         loading: 'Cargando',
         refreshProfile: 'Actualizar perfil',
         menu: {
-          title: 'Menú',
-          subtitle: 'Administra tu galería sin perder el perfil importado.',
           refresh: 'Refrescar',
           reset: 'Reiniciar',
           back: 'Volver',
@@ -114,9 +106,7 @@ export const resources = {
         },
         tryProfile: 'Probar perfil',
         newHighlight: 'Nuevo',
-        emptyTitle: 'Comparte tu primera foto',
-        emptyCopy:
-          'Carga un usuario público de Instagram para traer las primeras 18 publicaciones, o agrega tus propias fotos para comenzar con una cuadrícula vacía.',
+        emptyTitle: 'Agregar tus primeras fotos',
         alerts: {
           usernameNeededTitle: 'Nombre de usuario requerido',
           usernameNeededMessage:

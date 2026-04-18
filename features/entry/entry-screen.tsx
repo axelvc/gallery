@@ -143,7 +143,6 @@ export function EntryScreen() {
             <ThemedText type="defaultSemiBold" style={styles.formTitle}>
               {t('entry.title')}
             </ThemedText>
-            <ThemedText style={styles.formSubtitle}>{t('entry.subtitle')}</ThemedText>
 
             <View style={styles.formCard}>
               <ThemedText type="defaultSemiBold" style={styles.formCardTitle}>

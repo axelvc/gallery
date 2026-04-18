@@ -76,16 +76,6 @@ export function createHomeScreenStyles(theme: AppThemeColors) {
       paddingTop: Layout.spacing.lg,
       paddingBottom: Layout.spacing.md,
     },
-    menuTitle: {
-      fontSize: 17,
-      lineHeight: 22,
-      color: theme.text,
-    },
-    menuSubtitle: {
-      fontSize: 13,
-      lineHeight: 18,
-      color: theme.mutedText,
-    },
     menuActionList: {
       borderTopWidth: 1,
       borderTopColor: theme.border,
@@ -320,12 +310,6 @@ export function createHomeScreenStyles(theme: AppThemeColors) {
     emptyTitle: {
       textAlign: 'center',
       color: theme.text,
-    },
-    emptyCopy: {
-      textAlign: 'center',
-      fontSize: 14,
-      lineHeight: 20,
-      color: theme.mutedText,
     },
     emptyAction: {
       paddingVertical: 6,

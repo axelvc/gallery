@@ -23,7 +23,6 @@ export function EmptyGalleryState({ onPickPhotos, styles, theme }: EmptyGalleryS
       <ThemedText type="subtitle" style={styles.emptyTitle}>
         {t('home.emptyTitle')}
       </ThemedText>
-      <ThemedText style={styles.emptyCopy}>{t('home.emptyCopy')}</ThemedText>
       <Pressable accessibilityRole="button" onPress={onPickPhotos} style={({ pressed }) => [styles.emptyAction, { opacity: pressed ? 0.8 : 1 }]}> 
         <ThemedText style={styles.emptyActionText}>{t('home.addPhotos')}</ThemedText>
       </Pressable>

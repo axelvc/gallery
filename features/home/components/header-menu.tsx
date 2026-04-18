@@ -86,13 +86,6 @@ export function HeaderMenu({
               isCompact ? styles.menuSurfaceCompact : styles.menuSurfaceWide,
             ]}
           >
-            <View style={styles.menuHeader}>
-              <ThemedText type="defaultSemiBold" style={styles.menuTitle}>
-                {t('home.menu.title')}
-              </ThemedText>
-              <ThemedText style={styles.menuSubtitle}>{t('home.menu.subtitle')}</ThemedText>
-            </View>
-
             <View style={styles.menuActionList}>
               {actions.map((action, index) => {
                 const isDanger = action.tone === 'danger';
