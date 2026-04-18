@@ -18,68 +18,58 @@ export function createEntryScreenStyles(theme: AppThemeColors) {
     },
     content: {
       flexGrow: 1,
+      backgroundColor: theme.background,
+    },
+    brandBar: {
+      paddingTop: Layout.spacing.xxl,
+      paddingBottom: Layout.spacing.xxl,
+      alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: Layout.spacing.xl,
-      paddingVertical: Layout.spacing.xl,
-      gap: Layout.spacing.xxl,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.border,
+      backgroundColor: theme.background,
     },
-    heroBlock: {
-      gap: Layout.spacing.sm,
-    },
-    title: {
-      textAlign: 'center',
-      color: theme.text,
-    },
-    subtitle: {
-      textAlign: 'center',
-      fontSize: 15,
-      lineHeight: 22,
-      color: theme.mutedText,
-    },
-    optionsBlock: {
-      gap: Layout.spacing.md,
-    },
-    primaryOption: {
-      gap: Layout.spacing.xs,
-      borderRadius: Layout.radius.lg,
-      paddingHorizontal: Layout.spacing.lg,
-      paddingVertical: Layout.spacing.xl,
-      backgroundColor: theme.accent,
-    },
-    secondaryOption: {
-      gap: Layout.spacing.xs,
-      borderRadius: Layout.radius.lg,
+    brandMark: {
+      width: 84,
+      height: 84,
+      borderRadius: Layout.radius.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.actionSurface,
       borderWidth: 1,
       borderColor: theme.border,
-      paddingHorizontal: Layout.spacing.lg,
-      paddingVertical: Layout.spacing.xl,
-      backgroundColor: theme.actionSurface,
     },
-    optionTitle: {
-      fontSize: 18,
-      lineHeight: 24,
-      fontWeight: '700',
+    formSection: {
+      flex: 1,
+      justifyContent: 'center',
+      paddingHorizontal: Layout.spacing.xl,
+      paddingVertical: Layout.spacing.xxl,
+      gap: Layout.spacing.lg,
+    },
+    formCard: {
+      gap: Layout.spacing.md,
+      marginVertical: 'auto',
+    },
+    formTitle: {
       color: theme.text,
+      fontSize: 22,
+      lineHeight: 28,
+      textAlign: 'center',
     },
-    optionCopy: {
+    formSubtitle: {
+      textAlign: 'center',
       fontSize: 14,
       lineHeight: 20,
       color: theme.mutedText,
     },
-    formCard: {
-      gap: Layout.spacing.md,
-      borderRadius: Layout.radius.lg,
-      borderWidth: 1,
-      borderColor: theme.border,
-      padding: Layout.spacing.lg,
-      backgroundColor: theme.card,
-    },
-    formTitle: {
+    formCardTitle: {
       color: theme.text,
+      fontSize: 16,
+      lineHeight: 22,
     },
     usernameInput: {
       minHeight: 48,
-      borderRadius: Layout.radius.md,
+      borderRadius: 12,
       borderWidth: 1,
       borderColor: theme.border,
       paddingHorizontal: Layout.spacing.md,
@@ -87,18 +77,37 @@ export function createEntryScreenStyles(theme: AppThemeColors) {
       color: theme.text,
       backgroundColor: theme.actionSurface,
     },
-    submitButton: {
+    primaryButton: {
       minHeight: 46,
-      borderRadius: Layout.radius.md,
+      borderRadius: 12,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: theme.accent,
     },
-    submitButtonText: {
+    primaryButtonText: {
+      fontSize: 15,
+      lineHeight: 20,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    secondaryButton: {
+      minHeight: 46,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.border,
+      backgroundColor: theme.actionSurface,
+      marginTop: 'auto',
+    },
+    secondaryButtonText: {
       fontSize: 15,
       lineHeight: 20,
       fontWeight: '700',
       color: theme.text,
+    },
+    buttonPressed: {
+      opacity: 0.86,
     },
   });
 }

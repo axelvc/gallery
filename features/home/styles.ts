@@ -48,14 +48,12 @@ export function createHomeScreenStyles(theme: AppThemeColors) {
     },
     menuBackdrop: {
       flex: 1,
-      paddingHorizontal: Layout.spacing.lg,
       paddingBottom: Layout.spacing.lg,
-      backgroundColor: theme.overlaySoft,
+      backgroundColor: theme.overlay,
     },
     menuSurface: {
-      borderWidth: 1,
+      borderTopWidth: 1,
       borderColor: theme.border,
-      borderRadius: 20,
       backgroundColor: theme.card,
       overflow: 'hidden',
       shadowColor: '#000000',

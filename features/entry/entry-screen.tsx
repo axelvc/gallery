@@ -3,10 +3,11 @@ import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors, Layout } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { fetchInstagramProfile } from '@/features/home/api/instagram';
 import type { PersistedHomeState } from '@/features/home/types';
 import { clearPersistedHomeState, readPersistedHomeState, writePersistedHomeState } from '@/features/home/utils/persistence';
@@ -39,7 +40,6 @@ export function EntryScreen() {
   const styles = useMemo(() => createEntryScreenStyles(theme), [theme]);
   const [username, setUsername] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showProfileForm, setShowProfileForm] = useState(false);
   const [hasCheckedPersistedState, setHasCheckedPersistedState] = useState(false);
 
   useEffect(() => {
@@ -127,76 +127,64 @@ export function EntryScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <ThemedView style={styles.screen}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardAvoid}
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <ScrollView
-            contentContainerStyle={styles.content}
-            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.heroBlock}>
-              <ThemedText type="title" style={styles.title}>
-                {t('entry.title')}
+          <View style={styles.brandBar}>
+            <View style={styles.brandMark}>
+              <Ionicons name="logo-instagram" size={54} color={theme.text} />
+            </View>
+          </View>
+
+          <View style={styles.formSection}>
+            <ThemedText type="defaultSemiBold" style={styles.formTitle}>
+              {t('entry.title')}
+            </ThemedText>
+            <ThemedText style={styles.formSubtitle}>{t('entry.subtitle')}</ThemedText>
+
+            <View style={styles.formCard}>
+              <ThemedText type="defaultSemiBold" style={styles.formCardTitle}>
+                {t('entry.formTitle')}
               </ThemedText>
-              <ThemedText style={styles.subtitle}>{t('entry.subtitle')}</ThemedText>
-            </View>
 
-            <View style={styles.optionsBlock}>
+              <TextInput
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder={t('home.usernamePlaceholder')}
+                placeholderTextColor={theme.mutedText}
+                returnKeyType="done"
+                selectionColor={theme.accent}
+                onSubmitEditing={() => void handleUseProfile()}
+                style={styles.usernameInput}
+              />
+
               <Pressable
                 accessibilityRole="button"
                 disabled={isSubmitting}
-                onPress={() => void handleStartBlank()}
-                style={({ pressed }) => [styles.primaryOption, { opacity: pressed || isSubmitting ? 0.86 : 1 }]}
+                onPress={() => void handleUseProfile()}
+                style={({ pressed }) => [styles.primaryButton, pressed || isSubmitting ? styles.buttonPressed : null]}
               >
-                <ThemedText style={styles.optionTitle}>{t('entry.startBlank')}</ThemedText>
-                <ThemedText style={styles.optionCopy}>{t('entry.startBlankCopy')}</ThemedText>
+                <ThemedText style={styles.primaryButtonText}>
+                  {isSubmitting ? t('home.loading') : t('entry.useProfile')}
+                </ThemedText>
               </Pressable>
-
-              <Pressable
-                accessibilityRole="button"
-                disabled={isSubmitting}
-                onPress={() => setShowProfileForm((current) => !current)}
-                style={({ pressed }) => [styles.secondaryOption, { opacity: pressed || isSubmitting ? 0.86 : 1 }]}
-              >
-                <ThemedText style={styles.optionTitle}>{t('entry.useProfile')}</ThemedText>
-                <ThemedText style={styles.optionCopy}>{t('entry.useProfileCopy')}</ThemedText>
-              </Pressable>
-
-              {showProfileForm ? (
-                <View style={styles.formCard}>
-                  <ThemedText type="defaultSemiBold" style={styles.formTitle}>
-                    {t('entry.formTitle')}
-                  </ThemedText>
-                  <TextInput
-                    value={username}
-                    onChangeText={setUsername}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    placeholder={t('home.usernamePlaceholder')}
-                    placeholderTextColor={theme.mutedText}
-                    returnKeyType="done"
-                    selectionColor={theme.accent}
-                    onSubmitEditing={() => void handleUseProfile()}
-                    style={styles.usernameInput}
-                  />
-                  <Pressable
-                    accessibilityRole="button"
-                    disabled={isSubmitting}
-                    onPress={() => void handleUseProfile()}
-                    style={({ pressed }) => [styles.submitButton, { opacity: pressed || isSubmitting ? 0.86 : 1 }]}
-                  >
-                    <ThemedText style={styles.submitButtonText}>
-                      {isSubmitting ? t('home.loading') : t('entry.continue')}
-                    </ThemedText>
-                  </Pressable>
-                </View>
-              ) : null}
             </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+
+            <Pressable
+              accessibilityRole="button"
+              disabled={isSubmitting}
+              onPress={() => void handleStartBlank()}
+              style={({ pressed }) => [styles.secondaryButton, pressed || isSubmitting ? styles.buttonPressed : null]}
+            >
+              <ThemedText style={styles.secondaryButtonText}>{t('entry.startBlank')}</ThemedText>
+            </Pressable>
+          </View>
+        </ScrollView>
       </ThemedView>
     </SafeAreaView>
   );
