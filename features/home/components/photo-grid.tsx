@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import {
-  DraxProvider,
   SortableContainer,
   SortableItem,
   type SortableListHandle,
@@ -23,11 +22,18 @@ type PhotoGridProps = {
   styles: HomeScreenStyles;
 };
 
-export function PhotoGrid({ gridSize, onRemovePhoto, photos, scrollRef, sortable, styles }: PhotoGridProps) {
+export function PhotoGrid({
+  gridSize,
+  onRemovePhoto,
+  photos,
+  scrollRef,
+  sortable,
+  styles,
+}: PhotoGridProps) {
   const { t } = useTranslation();
 
   return (
-    <DraxProvider style={styles.listProvider}>
+    <View style={styles.listProvider}>
       <SortableContainer sortable={sortable} scrollRef={scrollRef} style={styles.listContainer}>
         <View style={styles.listContent}>
           {sortable.data.map((item, index) => (
@@ -75,6 +81,6 @@ export function PhotoGrid({ gridSize, onRemovePhoto, photos, scrollRef, sortable
           ))}
         </View>
       </SortableContainer>
-    </DraxProvider>
+    </View>
   );
 }

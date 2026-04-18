@@ -231,6 +231,12 @@ export function createHomeScreenStyles(theme: AppThemeColors) {
       justifyContent: 'center',
       backgroundColor: theme.accent,
     },
+    primaryButtonText: {
+      fontSize: 15,
+      lineHeight: 20,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
     secondaryButton: {
       flex: 1,
       minHeight: Layout.sizes.actionButtonHeight,
@@ -239,12 +245,6 @@ export function createHomeScreenStyles(theme: AppThemeColors) {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: theme.actionSurface,
-    },
-    buttonText: {
-      fontSize: 14,
-      fontWeight: '700',
-      lineHeight: 18,
-      color: theme.text,
     },
     highlightRow: {
       paddingTop: Layout.spacing.xxs,

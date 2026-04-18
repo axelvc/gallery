@@ -1,9 +1,9 @@
-import { useMemo } from 'react';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { ScrollView, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { DraxProvider, DraxScrollView } from 'react-native-drax';
 
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -52,68 +52,70 @@ export function HomeScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <ThemedView style={styles.screen}>
-        <ScrollView
-          ref={scrollRef}
-          contentContainerStyle={styles.scrollContent}
-          onContentSizeChange={sortable.onContentSizeChange}
-          onScroll={sortable.onScroll}
-          scrollEventThrottle={16}
-          showsVerticalScrollIndicator={false}
-        >
-          <ProfileHeader
-            avatarUrl={avatarUrl}
-            bio={bio}
-            displayName={displayName}
-            followers={followers}
-            following={following}
-            highlights={highlights}
-            isLoadingProfile={isLoadingProfile}
-            isPicking={isPicking}
-            onRefreshAddedPhotos={refreshAddedPhotos}
-            onResetProfile={() => void loadProfile(profileName)}
-            onStartOver={() =>
-              void (async () => {
-                try {
-                  await clearPersistedHomeState();
-                } finally {
-                  router.replace('/');
-                }
-              })()
-            }
-            onPickPhotos={pickPhotos}
-            postsCount={postsCount}
-            profileLoaded={profileLoaded}
-            profileName={profileName}
-            profileSource={profileSource}
-            styles={styles}
-            theme={theme}
-          />
-
-          <View style={styles.tabBar}>
-            <View style={styles.tabItemActive}>
-              <Ionicons name="grid-outline" size={22} color={theme.text} />
-            </View>
-            <View style={styles.tabItem}>
-              <Ionicons name="bookmark-outline" size={22} color={theme.mutedText} />
-            </View>
-            <View style={styles.tabItem}>
-              <Ionicons name="person-circle-outline" size={24} color={theme.mutedText} />
-            </View>
-          </View>
-
-          {hasPhotos ? (
-            <PhotoGrid
-              gridSize={gridSize}
-              onRemovePhoto={removePhoto}
-              photos={photos}
-              scrollRef={scrollRef}
-              sortable={sortable}
+        <DraxProvider>
+          <DraxScrollView
+            ref={scrollRef}
+            contentContainerStyle={styles.scrollContent}
+            onContentSizeChange={sortable.onContentSizeChange}
+            onScroll={sortable.onScroll}
+            scrollEventThrottle={16}
+            showsVerticalScrollIndicator={false}
+          >
+            <ProfileHeader
+              avatarUrl={avatarUrl}
+              bio={bio}
+              displayName={displayName}
+              followers={followers}
+              following={following}
+              highlights={highlights}
+              isLoadingProfile={isLoadingProfile}
+              isPicking={isPicking}
+              onRefreshAddedPhotos={refreshAddedPhotos}
+              onResetProfile={() => void loadProfile(profileName)}
+              onStartOver={() =>
+                void (async () => {
+                  try {
+                    await clearPersistedHomeState();
+                  } finally {
+                    router.replace('/');
+                  }
+                })()
+              }
+              onPickPhotos={pickPhotos}
+              postsCount={postsCount}
+              profileLoaded={profileLoaded}
+              profileName={profileName}
+              profileSource={profileSource}
               styles={styles}
+              theme={theme}
             />
-          ) : (
-            <EmptyGalleryState onPickPhotos={pickPhotos} styles={styles} theme={theme} />
-          )}
-        </ScrollView>
+
+            <View style={styles.tabBar}>
+              <View style={styles.tabItemActive}>
+                <Ionicons name="grid-outline" size={22} color={theme.text} />
+              </View>
+              <View style={styles.tabItem}>
+                <Ionicons name="bookmark-outline" size={22} color={theme.mutedText} />
+              </View>
+              <View style={styles.tabItem}>
+                <Ionicons name="person-circle-outline" size={24} color={theme.mutedText} />
+              </View>
+            </View>
+
+            {hasPhotos ? (
+              <PhotoGrid
+                gridSize={gridSize}
+                onRemovePhoto={removePhoto}
+                photos={photos}
+                scrollRef={scrollRef}
+                sortable={sortable}
+                styles={styles}
+              />
+            ) : (
+              <EmptyGalleryState onPickPhotos={pickPhotos} styles={styles} theme={theme} />
+            )}
+          </DraxScrollView>
+        </DraxProvider>
       </ThemedView>
     </SafeAreaView>
   );

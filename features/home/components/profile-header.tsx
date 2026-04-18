@@ -128,7 +128,7 @@ export function ProfileHeader({
           onPress={onPickPhotos}
           style={({ pressed }) => [styles.primaryButton, { opacity: pressed || isLoadingProfile ? 0.8 : 1 }]}
         >
-          <ThemedText style={styles.buttonText}>{isPicking ? t('home.opening') : t('home.addPhotos')}</ThemedText>
+          <ThemedText style={styles.primaryButtonText}>{isPicking ? t('home.opening') : t('home.addPhotos')}</ThemedText>
         </Pressable>
       </View>
 
