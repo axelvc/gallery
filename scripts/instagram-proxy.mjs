@@ -1,13 +1,35 @@
 import { createServer } from 'node:http';
 
 const PORT = Number(process.env.PORT || process.env.INSTAGRAM_PROXY_PORT || 8787);
+const INSTAGRAM_BASE_URL = 'https://www.instagram.com';
+const INSTAGRAM_API_BASE_URL = 'https://i.instagram.com';
 const INSTAGRAM_APP_ID = '936619743392459';
+const INSTAGRAM_MOBILE_USER_AGENT =
+  'Instagram 289.0.0.77.109 Android (33/13; 420dpi; 1080x2400; samsung; SM-G998B; p3s; exynos2100; en_US; 485483842)';
 const DEFAULT_HEADERS = {
   Accept: 'application/json,text/html;q=0.9,*/*;q=0.8',
   'Accept-Language': 'en-US,en;q=0.9',
   'User-Agent':
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36',
 };
+
+function createLogContext(username) {
+  return {
+    requestId: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    username,
+  };
+}
+
+function logProxyEvent(event, details = {}) {
+  console.log(
+    JSON.stringify({
+      scope: 'instagram-proxy',
+      event,
+      timestamp: new Date().toISOString(),
+      ...details,
+    })
+  );
+}
 
 function sendJson(response, statusCode, payload) {
   response.writeHead(statusCode, {
@@ -78,12 +100,66 @@ function extractProfileExtrasQueryId(html) {
   return html.match(/"profile_extras":\{.*?"query_id":"(\d+)"/s)?.[1] ?? '';
 }
 
-async function fetchProfileExtrasUser(username, userId) {
-  const profileResponse = await fetch(`https://www.instagram.com/${encodeURIComponent(username)}/`, {
+function getSetCookieHeaders(headers) {
+  if (typeof headers.getSetCookie === 'function') {
+    return headers.getSetCookie();
+  }
+
+  const setCookie = headers.get('set-cookie');
+
+  if (!setCookie) {
+    return [];
+  }
+
+  return setCookie.split(/, (?=[^;]+=[^;]+)/g).map((value) => value.trim());
+}
+
+function buildCookieHeader(headers) {
+  const cookieParts = getSetCookieHeaders(headers)
+    .map((value) => value.split(';', 1)[0]?.trim())
+    .filter(Boolean);
+
+  return cookieParts.join('; ');
+}
+
+function extractCsrfToken(html, cookieHeader) {
+  const htmlToken = html.match(/"csrf_token":"([^"]+)"/)?.[1]?.trim();
+
+  if (htmlToken) {
+    return htmlToken;
+  }
+
+  return cookieHeader.match(/(?:^|;\s*)csrftoken=([^;]+)/)?.[1]?.trim() ?? '';
+}
+
+function extractLsdToken(html) {
+  return html.match(/"token":"([^"]+)"/)?.[1]?.trim() ?? '';
+}
+
+function summarizeHtml(html) {
+  return {
+    htmlLength: html.length,
+    hasOgTitle: html.includes('og:title'),
+    hasOgDescription: html.includes('og:description'),
+    hasOgImage: html.includes('og:image'),
+    hasProfileExtrasQueryId: Boolean(extractProfileExtrasQueryId(html)),
+    hasPrivateMarker: /This Account is Private/i.test(html),
+    title: html.match(/<title[^>]*>(.*?)<\/title>/i)?.[1]?.slice(0, 120) ?? '',
+  };
+}
+
+async function createInstagramSession(username, context) {
+  const profileResponse = await fetch(`${INSTAGRAM_BASE_URL}/${encodeURIComponent(username)}/`, {
     headers: {
-      'User-Agent': 'Mozilla/5.0',
+      ...DEFAULT_HEADERS,
       Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     },
+  });
+
+  logProxyEvent('session_response', {
+    ...context,
+    status: profileResponse.status,
+    contentType: profileResponse.headers.get('content-type') ?? '',
   });
 
   if (!profileResponse.ok) {
@@ -91,7 +167,116 @@ async function fetchProfileExtrasUser(username, userId) {
   }
 
   const profileHtml = await profileResponse.text();
+  const cookieHeader = buildCookieHeader(profileResponse.headers);
+  const csrfToken = extractCsrfToken(profileHtml, cookieHeader);
+  const lsdToken = extractLsdToken(profileHtml);
+  const cookieNames = cookieHeader
+    .split(';')
+    .map((part) => part.split('=')[0]?.trim())
+    .filter(Boolean);
+
+  logProxyEvent('session_parsed', {
+    ...context,
+      cookieNames,
+      cookieCount: cookieNames.length,
+      hasCsrfToken: Boolean(csrfToken),
+      hasLsdToken: Boolean(lsdToken),
+      ...summarizeHtml(profileHtml),
+    });
+
+  return {
+    cookieHeader,
+    context,
+    csrfToken,
+    html: profileHtml,
+    lsdToken,
+  };
+}
+
+function buildInstagramApiHeaders(username, session, apiBaseUrl) {
+  const baseHeaders = {
+    ...DEFAULT_HEADERS,
+    Accept: 'application/json,text/html;q=0.9,*/*;q=0.8',
+    Referer: `${INSTAGRAM_BASE_URL}/${username}/`,
+    'X-CSRFToken': session.csrfToken,
+    'X-IG-App-ID': INSTAGRAM_APP_ID,
+    'X-Requested-With': 'XMLHttpRequest',
+    ...(session.cookieHeader ? { Cookie: session.cookieHeader } : {}),
+  };
+
+  if (apiBaseUrl === INSTAGRAM_API_BASE_URL) {
+    return {
+      ...baseHeaders,
+      Accept: '*/*',
+      'User-Agent': INSTAGRAM_MOBILE_USER_AGENT,
+      'X-FB-LSD': session.lsdToken,
+      'X-IG-Connection-Type': 'WIFI',
+      'X-IG-Capabilities': '3brTvw==',
+    };
+  }
+
+  return baseHeaders;
+}
+
+async function fetchProfileInfoFromApi(apiBaseUrl, username, session, context) {
+  const response = await fetch(
+    `${apiBaseUrl}/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`,
+    {
+      headers: buildInstagramApiHeaders(username, session, apiBaseUrl),
+    }
+  );
+
+  logProxyEvent('profile_info_response', {
+    ...context,
+    apiBaseUrl,
+    status: response.status,
+    contentType: response.headers.get('content-type') ?? '',
+  });
+
+  if (response.status === 404) {
+    throw new Error('PROFILE_NOT_FOUND');
+  }
+
+  if (response.status === 401 || response.status === 403 || response.status === 429) {
+    throw new Error('PROFILE_BLOCKED');
+  }
+
+  if (!response.ok) {
+    throw new Error('PROFILE_UNAVAILABLE');
+  }
+
+  const payload = await response.json();
+  const user = payload?.data?.user;
+
+  logProxyEvent('profile_info_payload', {
+    ...context,
+    apiBaseUrl,
+    hasUser: Boolean(user),
+    isPrivate: Boolean(user?.is_private),
+    photoEdgeCount: user?.edge_owner_to_timeline_media?.edges?.length ?? 0,
+  });
+
+  if (!user) {
+    throw new Error('PROFILE_NOT_FOUND');
+  }
+
+  if (user.is_private) {
+    throw new Error('PROFILE_PRIVATE');
+  }
+
+  return user;
+}
+
+async function fetchProfileExtrasUser(username, userId, session) {
+  const activeSession = session ?? (await createInstagramSession(username, createLogContext(username)));
+  const profileHtml = activeSession.html;
   const queryId = extractProfileExtrasQueryId(profileHtml);
+
+  logProxyEvent('extras_query_detected', {
+    ...activeSession.context,
+    hasQueryId: Boolean(queryId),
+    userId,
+  });
 
   if (!queryId) {
     throw new Error('PROFILE_EXTRAS_UNAVAILABLE');
@@ -108,13 +293,17 @@ async function fetchProfileExtrasUser(username, userId) {
     include_highlight_reels: 'true',
   });
 
-  const response = await fetch(`https://www.instagram.com/graphql/query/?${query.toString()}`, {
+  const response = await fetch(`${INSTAGRAM_BASE_URL}/graphql/query/?${query.toString()}`, {
     headers: {
-      'User-Agent': 'Mozilla/5.0',
+      ...buildInstagramApiHeaders(username, activeSession, INSTAGRAM_BASE_URL),
       Accept: 'application/json',
-      Referer: `https://www.instagram.com/${username}/`,
-      'X-IG-App-ID': INSTAGRAM_APP_ID,
     },
+  });
+
+  logProxyEvent('extras_response', {
+    ...activeSession.context,
+    status: response.status,
+    userId,
   });
 
   if (!response.ok) {
@@ -161,47 +350,41 @@ function formatProfilePayload(user, baseUrl, profileExtrasUser = null) {
   };
 }
 
-async function fetchPublicProfileInfo(username, baseUrl) {
-  const response = await fetch(
-    `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`,
-    {
-      headers: {
-        ...DEFAULT_HEADERS,
-        Referer: `https://www.instagram.com/${username}/`,
-        'X-IG-App-ID': INSTAGRAM_APP_ID,
-      },
+async function fetchPublicProfileInfo(username, baseUrl, context = createLogContext(username)) {
+  const session = await createInstagramSession(username, context);
+  let user;
+
+  try {
+    user = await fetchProfileInfoFromApi(INSTAGRAM_API_BASE_URL, username, session, context);
+  } catch (error) {
+    if (!(error instanceof Error)) {
+      throw error;
     }
-  );
 
-  if (response.status === 404) {
-    throw new Error('PROFILE_NOT_FOUND');
-  }
+    logProxyEvent('profile_info_primary_failed', {
+      ...context,
+      apiBaseUrl: INSTAGRAM_API_BASE_URL,
+      message: error.message,
+    });
 
-  if (response.status === 401 || response.status === 403 || response.status === 429) {
-    throw new Error('PROFILE_BLOCKED');
-  }
+    if (error.message === 'PROFILE_NOT_FOUND' || error.message === 'PROFILE_PRIVATE') {
+      throw error;
+    }
 
-  if (!response.ok) {
-    throw new Error('PROFILE_UNAVAILABLE');
-  }
-
-  const payload = await response.json();
-  const user = payload?.data?.user;
-
-  if (!user) {
-    throw new Error('PROFILE_NOT_FOUND');
-  }
-
-  if (user.is_private) {
-    throw new Error('PROFILE_PRIVATE');
+    user = await fetchProfileInfoFromApi(INSTAGRAM_BASE_URL, username, session, context);
   }
 
   let profileExtrasUser = null;
 
   if (user.id) {
     try {
-      profileExtrasUser = await fetchProfileExtrasUser(username, user.id);
-    } catch {
+      profileExtrasUser = await fetchProfileExtrasUser(username, user.id, session);
+    } catch (error) {
+      logProxyEvent('extras_failed', {
+        ...context,
+        userId: user.id,
+        message: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
+      });
       profileExtrasUser = null;
     }
   }
@@ -263,23 +446,27 @@ function extractCounts(description) {
   return counts;
 }
 
-async function fetchProfileHtml(username, baseUrl) {
-  const response = await fetch(`https://www.instagram.com/${encodeURIComponent(username)}/`, {
-    headers: {
-      ...DEFAULT_HEADERS,
-      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    },
-  });
+function hasUsableProfileData(profile) {
+  return Boolean(
+    profile.fullName ||
+      profile.profilePictureUrl ||
+      profile.postsCount ||
+      profile.followersCount ||
+      profile.followingCount
+  );
+}
 
-  if (response.status === 404) {
-    throw new Error('PROFILE_NOT_FOUND');
-  }
+async function fetchProfileHtml(username, baseUrl, session = null) {
+  const html = session?.html;
 
-  if (!response.ok) {
+  if (!html) {
     throw new Error('PROFILE_UNAVAILABLE');
   }
 
-  const html = await response.text();
+  logProxyEvent('html_fallback_started', {
+    ...session.context,
+    ...summarizeHtml(html),
+  });
 
   if (/This Account is Private/i.test(html)) {
     throw new Error('PROFILE_PRIVATE');
@@ -308,21 +495,55 @@ async function fetchProfileHtml(username, baseUrl) {
 }
 
 async function loadInstagramProfile(username, baseUrl) {
+  let session = null;
+  const context = createLogContext(username);
+
   try {
-    return await fetchPublicProfileInfo(username, baseUrl);
+    return await fetchPublicProfileInfo(username, baseUrl, context);
   } catch (error) {
+    logProxyEvent('profile_load_failed', {
+      ...context,
+      message: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
+    });
+
     if (!(error instanceof Error)) {
       throw error;
     }
 
-    if (error.message === 'PROFILE_NOT_FOUND' || error.message === 'PROFILE_PRIVATE') {
+    if (
+      error.message === 'PROFILE_NOT_FOUND' ||
+      error.message === 'PROFILE_PRIVATE' ||
+      error.message === 'PROFILE_BLOCKED'
+    ) {
       throw error;
     }
 
-    const fallback = await fetchProfileHtml(username, baseUrl);
+    try {
+      session = await createInstagramSession(username, context);
+    } catch (sessionError) {
+      logProxyEvent('session_retry_failed', {
+        ...context,
+        message: sessionError instanceof Error ? sessionError.message : 'UNKNOWN_ERROR',
+      });
+      session = null;
+    }
+
+    const fallback = await fetchProfileHtml(username, baseUrl, session);
 
     if (fallback.isPrivate) {
       throw new Error('PROFILE_PRIVATE');
+    }
+
+    if (!hasUsableProfileData(fallback)) {
+      logProxyEvent('html_fallback_empty', {
+        ...context,
+        fullName: fallback.fullName,
+        hasProfilePictureUrl: Boolean(fallback.profilePictureUrl),
+        postsCount: fallback.postsCount,
+        followersCount: fallback.followersCount,
+        followingCount: fallback.followingCount,
+      });
+      throw new Error('PROFILE_UNAVAILABLE');
     }
 
     return fallback;
@@ -407,6 +628,11 @@ const server = createServer(async (request, response) => {
     const profile = await loadInstagramProfile(username, baseUrl);
     sendJson(response, 200, profile);
   } catch (error) {
+    logProxyEvent('request_failed', {
+      username,
+      message: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
+    });
+
     if (error instanceof Error) {
       if (error.message === 'PROFILE_NOT_FOUND') {
         sendJson(response, 404, { error: 'PROFILE_NOT_FOUND' });
@@ -415,6 +641,11 @@ const server = createServer(async (request, response) => {
 
       if (error.message === 'PROFILE_PRIVATE') {
         sendJson(response, 403, { error: 'PROFILE_PRIVATE' });
+        return;
+      }
+
+      if (error.message === 'PROFILE_BLOCKED') {
+        sendJson(response, 429, { error: 'PROFILE_BLOCKED' });
         return;
       }
     }
