@@ -80,7 +80,7 @@ export function ProfileHeader({
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={String(t('home.menu.title'))}
+          accessibilityLabel={t('home.menu.title')}
           onPress={() => setIsMenuVisible(true)}
           style={({ pressed }) => [styles.topBarMenuButton, { opacity: pressed ? 0.72 : 1 }]}
         >

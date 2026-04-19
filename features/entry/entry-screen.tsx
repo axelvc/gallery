@@ -105,6 +105,8 @@ export function EntryScreen() {
       if (error instanceof Error) {
         if (error.message === 'PROFILE_PRIVATE') {
           Alert.alert(t('home.alerts.privateProfileTitle'), t('home.alerts.privateProfileMessage'));
+        } else if (error.message === 'PROFILE_BLOCKED') {
+          Alert.alert(t('home.alerts.profileBlockedTitle'), t('home.alerts.profileBlockedMessage'));
         } else if (error.message === 'PROFILE_NOT_FOUND') {
           Alert.alert(t('home.alerts.profileNotFoundTitle'), t('home.alerts.profileNotFoundMessage'));
         } else if (error.message === 'EMPTY_USERNAME') {

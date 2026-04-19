@@ -1,23 +1,10 @@
 import { Platform } from 'react-native';
 
+import { fetchInstagramProfileDirect } from '@/features/home/api/instagram-direct';
+import { fetchInstagramProfileFromProxy } from '@/features/home/api/instagram-proxy';
 import { DEFAULT_PROXY_BASE_URL } from '@/features/home/constants';
-import { i18n } from '@/i18n';
-import type { InstagramProfileLoadResult, ProfileHighlight, GalleryPhoto } from '@/features/home/types';
-import { formatCount, normalizeUsername } from '@/features/home/utils/profile';
-
-type InstagramProfileResponse = {
-  source?: string;
-  username?: string;
-  fullName?: string;
-  biography?: string;
-  profilePictureUrl?: string;
-  postsCount?: number;
-  followersCount?: number;
-  followingCount?: number;
-  highlightCount?: number;
-  highlights?: ProfileHighlight[];
-  photos?: GalleryPhoto[];
-};
+import type { InstagramProfileLoadResult } from '@/features/home/types';
+import { normalizeUsername } from '@/features/home/utils/profile';
 
 function getInstagramProxyBaseUrl() {
   const configuredUrl = process.env.EXPO_PUBLIC_INSTAGRAM_PROXY_URL?.trim();
@@ -29,6 +16,14 @@ function getInstagramProxyBaseUrl() {
   return Platform.OS === 'web' ? DEFAULT_PROXY_BASE_URL : '';
 }
 
+function shouldFallbackToProxy(error: unknown) {
+  if (!(error instanceof Error)) {
+    return true;
+  }
+
+  return error.message !== 'PROFILE_NOT_FOUND' && error.message !== 'PROFILE_PRIVATE' && error.message !== 'PROFILE_BLOCKED';
+}
+
 export async function fetchInstagramProfile(username: string): Promise<InstagramProfileLoadResult> {
   const normalizedUsername = normalizeUsername(username);
   const proxyBaseUrl = getInstagramProxyBaseUrl();
@@ -37,51 +32,25 @@ export async function fetchInstagramProfile(username: string): Promise<Instagram
     throw new Error('EMPTY_USERNAME');
   }
 
+  if (Platform.OS !== 'web') {
+    try {
+      return await fetchInstagramProfileDirect(normalizedUsername);
+    } catch (error) {
+      if (!shouldFallbackToProxy(error)) {
+        throw error;
+      }
+
+      if (!proxyBaseUrl) {
+        throw new Error('PROXY_NOT_CONFIGURED');
+      }
+
+      return fetchInstagramProfileFromProxy(proxyBaseUrl, normalizedUsername);
+    }
+  }
+
   if (!proxyBaseUrl) {
     throw new Error('PROXY_NOT_CONFIGURED');
   }
 
-  const response = await fetch(
-    `${proxyBaseUrl}/instagram/profile?username=${encodeURIComponent(normalizedUsername)}`
-  );
-
-  if (response.status === 404) {
-    throw new Error('PROFILE_NOT_FOUND');
-  }
-
-  if (response.status === 403) {
-    throw new Error('PROFILE_PRIVATE');
-  }
-
-  if (response.status === 429) {
-    throw new Error('PROFILE_UNAVAILABLE');
-  }
-
-  if (!response.ok) {
-    throw new Error('PROFILE_UNAVAILABLE');
-  }
-
-  const data = (await response.json()) as InstagramProfileResponse | { error?: string };
-
-  if ('error' in data && data.error) {
-    throw new Error(data.error);
-  }
-
-  if (!('username' in data) || !data.username) {
-    throw new Error('PROFILE_NOT_FOUND');
-  }
-
-  return {
-    source: data.source,
-    username: data.username || normalizedUsername,
-    displayName: data.fullName?.trim() || data.username || normalizedUsername,
-    biography: data.biography?.trim() || i18n.t('home.importedProfileBio'),
-    profilePictureUrl: data.profilePictureUrl ?? '',
-    postsCount: typeof data.postsCount === 'number' ? data.postsCount : data.photos?.length ?? 0,
-    followers: formatCount(data.followersCount),
-    following: formatCount(data.followingCount),
-    highlightCount: typeof data.highlightCount === 'number' ? data.highlightCount : data.highlights?.length ?? 0,
-    highlights: (data.highlights ?? []).filter((highlight) => highlight.coverUrl),
-    photos: (data.photos ?? []).slice(0, 18),
-  };
+  return fetchInstagramProfileFromProxy(proxyBaseUrl, normalizedUsername);
 }

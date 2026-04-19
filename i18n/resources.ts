@@ -33,6 +33,7 @@ export const resources = {
         loading: 'Loading',
         refreshProfile: 'Refresh profile',
         menu: {
+          title: 'Menu',
           refresh: 'Refresh',
           reset: 'Reset',
           back: 'Back',
@@ -47,12 +48,15 @@ export const resources = {
           privateProfileTitle: 'Private profile',
           privateProfileMessage:
             'That Instagram account is private, so its posts cannot be used for the grid.',
+          profileBlockedTitle: 'Instagram blocked this request',
+          profileBlockedMessage:
+            'Instagram didn’t allow this network to load the profile. Try again later or switch networks.',
           profileNotFoundTitle: 'Profile not found',
           profileNotFoundMessage:
             'That Instagram username does not exist. Try another public account.',
-          proxyNotConfiguredTitle: 'Proxy not configured',
-          proxyNotConfiguredMessage:
-            'Set EXPO_PUBLIC_INSTAGRAM_PROXY_URL or run npm run instagram-proxy before loading a profile.',
+           proxyNotConfiguredTitle: 'Proxy not configured',
+           proxyNotConfiguredMessage:
+            'If Instagram blocks direct loading, set EXPO_PUBLIC_INSTAGRAM_PROXY_URL or run npm run instagram-proxy before loading a profile.',
           profileUnavailableTitle: 'Profile unavailable',
           profileUnavailableMessage:
             'Instagram did not return a usable public profile. The grid has been cleared.',
@@ -99,6 +103,7 @@ export const resources = {
         loading: 'Cargando',
         refreshProfile: 'Actualizar perfil',
         menu: {
+          title: 'Menú',
           refresh: 'Refrescar',
           reset: 'Reiniciar',
           back: 'Volver',
@@ -114,12 +119,15 @@ export const resources = {
           privateProfileTitle: 'Perfil privado',
           privateProfileMessage:
             'Esa cuenta de Instagram es privada, así que sus publicaciones no se pueden usar en la cuadrícula.',
+          profileBlockedTitle: 'Instagram bloqueó esta solicitud',
+          profileBlockedMessage:
+            'Instagram no permitió que esta red cargue el perfil. Intenta más tarde o cambia de red.',
           profileNotFoundTitle: 'Perfil no encontrado',
           profileNotFoundMessage:
             'Ese nombre de usuario de Instagram no existe. Prueba con otra cuenta pública.',
-          proxyNotConfiguredTitle: 'Proxy sin configurar',
-          proxyNotConfiguredMessage:
-            'Configura EXPO_PUBLIC_INSTAGRAM_PROXY_URL o ejecuta npm run instagram-proxy antes de cargar un perfil.',
+           proxyNotConfiguredTitle: 'Proxy sin configurar',
+           proxyNotConfiguredMessage:
+            'Si Instagram bloquea la carga directa, configura EXPO_PUBLIC_INSTAGRAM_PROXY_URL o ejecuta npm run instagram-proxy antes de cargar un perfil.',
           profileUnavailableTitle: 'Perfil no disponible',
           profileUnavailableMessage:
             'Instagram no devolvió un perfil público utilizable. La cuadrícula se limpió.',
