@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 
-const PORT = Number(process.env.INSTAGRAM_PROXY_PORT || 8787);
+const PORT = Number(process.env.PORT || process.env.INSTAGRAM_PROXY_PORT || 8787);
 const INSTAGRAM_APP_ID = '936619743392459';
 const DEFAULT_HEADERS = {
   Accept: 'application/json,text/html;q=0.9,*/*;q=0.8',
@@ -31,6 +31,21 @@ function sendEmpty(response, statusCode) {
 
 function normalizeUsername(value) {
   return value.trim().replace(/^@+/, '').replace(/\/$/, '');
+}
+
+function getRequestBaseUrl(request) {
+  const forwardedProtoHeader = request.headers['x-forwarded-proto'];
+  const forwardedHostHeader = request.headers['x-forwarded-host'];
+  const forwardedProto = Array.isArray(forwardedProtoHeader)
+    ? forwardedProtoHeader[0]
+    : forwardedProtoHeader?.split(',')[0]?.trim();
+  const forwardedHost = Array.isArray(forwardedHostHeader)
+    ? forwardedHostHeader[0]
+    : forwardedHostHeader?.split(',')[0]?.trim();
+  const host = forwardedHost || request.headers.host || `localhost:${PORT}`;
+  const protocol = forwardedProto || (host.includes('localhost') ? 'http' : 'https');
+
+  return `${protocol}://${host}`;
 }
 
 function buildProxyMediaUrl(baseUrl, targetUrl) {
@@ -367,8 +382,8 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  const url = new URL(request.url, `http://${request.headers.host ?? 'localhost'}`);
-  const baseUrl = `http://${request.headers.host ?? `localhost:${PORT}`}`;
+  const baseUrl = getRequestBaseUrl(request);
+  const url = new URL(request.url, baseUrl);
 
   if (request.method === 'GET' && url.pathname === '/instagram/media') {
     const targetUrl = url.searchParams.get('url') ?? '';
@@ -409,5 +424,5 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Instagram proxy running on http://localhost:${PORT}`);
+  console.log(`Instagram proxy running on ${PORT === 8787 ? `http://localhost:${PORT}` : `port ${PORT}`}`);
 });
