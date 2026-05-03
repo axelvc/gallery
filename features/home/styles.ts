@@ -14,7 +14,6 @@ export function createHomeScreenStyles(theme: AppThemeColors) {
       backgroundColor: theme.background,
     },
     scrollContent: {
-      paddingBottom: Layout.spacing.xxl,
       backgroundColor: theme.background,
     },
     header: {
@@ -320,16 +319,9 @@ export function createHomeScreenStyles(theme: AppThemeColors) {
       fontWeight: '600',
       color: theme.accent,
     },
-    listContent: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      margin: 'auto',
-    },
-    listProvider: {
-      width: '100%',
-    },
     listContainer: {
       width: '100%',
+      paddingBottom: Layout.spacing.xxl,
     },
     sortableItem: {
       borderRadius: 0,
