@@ -73,9 +73,10 @@ export function HomeScreen() {
 						<FlatList<GalleryPhoto>
 							ref={listRef}
 							data={sortable.data}
+							extraData={sortable.data}
 							numColumns={GRID_COLUMNS}
 							keyExtractor={sortable.stableKeyExtractor}
-							removeClippedSubviews
+							removeClippedSubviews={false}
 							initialNumToRender={24}
 							windowSize={10}
 							maxToRenderPerBatch={24}
