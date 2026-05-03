@@ -2,10 +2,20 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import {
+  configureReanimatedLogger,
+  ReanimatedLogLevel,
+} from 'react-native-reanimated';
+
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import '@/i18n';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: true, // Reanimated runs in strict mode by default
+});
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
